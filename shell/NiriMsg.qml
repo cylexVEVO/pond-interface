@@ -14,6 +14,7 @@ Singleton {
   property bool overviewOpen: false
   property var dragOrigin: null
   property bool _workspaceLauncherOpen: false
+  property bool _workspaceLauncherStateKnown: false
   property var _windows: ({})
   property var _appInfoCache: ({})
   property ListModel workspaceRows: ListModel {}
@@ -44,16 +45,12 @@ Singleton {
     Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(index)]);
   }
 
-  function _outputHasEmptyWorkspace(outputName) {
-    return workspaces.some(w => (w.output || "") === (outputName || "")
-        && !Object.values(_windows).some(win => win.workspaceId === w.id));
-  }
-
   // Niri's bottom layer slides with workspaces. Background + the backdrop
   // rule keeps the visual fixed; Vicinae provides a separate input surface.
   function _openWorkspaceLauncher(force) {
     workspaceLauncherCloseTimer.stop();
     _workspaceLauncherOpen = true;
+    _workspaceLauncherStateKnown = true;
     _queueLauncherCommand("vicinae://open?layer=background&workspace=true"
         + (force ? "&force=true" : ""));
   }
@@ -76,11 +73,12 @@ Singleton {
   }
 
   function _closeWorkspaceLauncher(immediate) {
-    if (!_workspaceLauncherOpen && !workspaceLauncherCloseTimer.running)
+    if (_workspaceLauncherStateKnown && !_workspaceLauncherOpen && !workspaceLauncherCloseTimer.running)
       return;
     if (immediate) {
       workspaceLauncherCloseTimer.stop();
       _workspaceLauncherOpen = false;
+      _workspaceLauncherStateKnown = true;
       _queueLauncherCommand("vicinae://close?workspace=true");
       return;
     }
@@ -89,25 +87,22 @@ Singleton {
       workspaceLauncherCloseTimer.start();
   }
 
-  // Stay open under windows whenever this output still has an empty workspace,
-  // including while an occupied one is focused — otherwise keyboard switches
-  // only learn about the empty destination after the slide has started/finished.
+  // An empty workspace elsewhere must not expose the launcher around narrow or
+  // floating windows on the focused workspace. Keep it only during the switch.
   function _syncWorkspaceLauncher(force) {
     if (overviewOpen || dragOrigin) {
       _closeWorkspaceLauncher(true);
       return;
     }
     const focusedWorkspace = workspaces.find(w => w.isFocused);
-    const outputName = focusedWorkspace ? (focusedWorkspace.output || "") : focusedOutputName;
-    if (_outputHasEmptyWorkspace(outputName)) {
-      // Cancel a pending close if we came back to an output that still has a hole.
-      if (workspaceLauncherCloseTimer.running)
-        workspaceLauncherCloseTimer.stop();
+    if (!focusedWorkspace)
+      return;
+    if (!Object.values(_windows).some(win => win.workspaceId === focusedWorkspace.id)) {
       _openWorkspaceLauncher(force);
       return;
     }
-    // No empty workspace left on this output: delay so a newly opened window can
-    // slide over the bottom-layer launcher before it closes underneath.
+    // Let arriving apps slide over the launcher, then hide it even if they do
+    // not cover its entire rectangle.
     _closeWorkspaceLauncher(false);
   }
 
@@ -115,9 +110,10 @@ Singleton {
     id: workspaceLauncherCloseTimer
     interval: root.workspaceLauncherCloseDelayMs
     onTriggered: {
-      if (!root._workspaceLauncherOpen)
+      if (root._workspaceLauncherStateKnown && !root._workspaceLauncherOpen)
         return;
       root._workspaceLauncherOpen = false;
+      root._workspaceLauncherStateKnown = true;
       root._queueLauncherCommand("vicinae://close?workspace=true");
     }
   }
