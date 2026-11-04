@@ -44,11 +44,18 @@ Singleton {
     Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(index)]);
   }
 
+  function _outputHasEmptyWorkspace(outputName) {
+    return workspaces.some(w => (w.output || "") === (outputName || "")
+        && !Object.values(_windows).some(win => win.workspaceId === w.id));
+  }
+
   // Bottom layer: already underneath windows so the active workspace can slide
   // away and reveal it (or slide in and hide it). Normal Mod+Space stays on top.
   function _openWorkspaceLauncher() {
-    _workspaceLauncherOpen = true;
     workspaceLauncherCloseTimer.stop();
+    if (_workspaceLauncherOpen)
+      return;
+    _workspaceLauncherOpen = true;
     Quickshell.execDetached(["vicinae", "vicinae://open?layer=bottom"]);
   }
 
@@ -64,6 +71,28 @@ Singleton {
     // Don't restart — later niri events would otherwise keep postponing the close.
     if (!workspaceLauncherCloseTimer.running)
       workspaceLauncherCloseTimer.start();
+  }
+
+  // Stay open under windows whenever this output still has an empty workspace,
+  // including while an occupied one is focused — otherwise keyboard switches
+  // only learn about the empty destination after the slide has started/finished.
+  function _syncWorkspaceLauncher() {
+    if (overviewOpen || dragOrigin) {
+      _closeWorkspaceLauncher(true);
+      return;
+    }
+    const focusedWorkspace = workspaces.find(w => w.isFocused);
+    const outputName = focusedWorkspace ? (focusedWorkspace.output || "") : focusedOutputName;
+    if (_outputHasEmptyWorkspace(outputName)) {
+      // Cancel a pending close if we came back to an output that still has a hole.
+      if (workspaceLauncherCloseTimer.running)
+        workspaceLauncherCloseTimer.stop();
+      _openWorkspaceLauncher();
+      return;
+    }
+    // No empty workspace left on this output: delay so a newly opened window can
+    // slide over the bottom-layer launcher before it closes underneath.
+    _closeWorkspaceLauncher(false);
   }
 
   Timer {
@@ -289,10 +318,6 @@ Singleton {
         isActive: target && w.output === target.output ? w.id === a.id : w.isActive,
         isFocused: a.focused ? w.id === a.id : w.isFocused
       }));
-      if (a.focused && target && !target.isFocused && !dragOrigin && !overviewOpen
-          && !Object.values(_windows).some(w => w.workspaceId === a.id)) {
-        _openWorkspaceLauncher();
-      }
     } else if (ev.WorkspaceActiveWindowChanged) {
       const a = ev.WorkspaceActiveWindowChanged;
       workspaces = workspaces.map(w => w.id === a.workspace_id
@@ -336,17 +361,7 @@ Singleton {
     } else {
       return;
     }
-    const focusedWorkspace = workspaces.find(w => w.isFocused);
-    if (_workspaceLauncherOpen && (overviewOpen || (focusedWorkspace
-        && Object.values(_windows).some(w => w.workspaceId === focusedWorkspace.id)))) {
-      // Overview: dismiss immediately. Occupied workspace: delay so windows can
-      // slide over the bottom-layer launcher before it closes underneath them.
-      _closeWorkspaceLauncher(overviewOpen);
-    } else if (_workspaceLauncherOpen && focusedWorkspace
-        && !Object.values(_windows).some(w => w.workspaceId === focusedWorkspace.id)) {
-      // Switched back to an empty workspace while a close was pending.
-      workspaceLauncherCloseTimer.stop();
-    }
+    _syncWorkspaceLauncher();
     _recompute();
   }
 
