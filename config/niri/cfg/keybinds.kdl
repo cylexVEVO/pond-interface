@@ -9,7 +9,8 @@ binds {
     Mod+Return                          hotkey-overlay-title="Open Terminal: Kitty" { spawn "kitty"; }
     Mod+E                               hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
 
-    // Shell defaults: uncomment and edit to override with personal settings.
+    // Prefer System → Keyboard shortcuts in Settings for remapping.
+    // Or uncomment and edit below to override shell defaults by hand.
     // Mod+Space                           repeat=false hotkey-overlay-title="Open Launcher" { spawn "/usr/bin/vicinae" "toggle"; }
     // Mod+V                               repeat=false hotkey-overlay-title="Open Clipboard History" { spawn "/usr/bin/vicinae" "vicinae://launch/clipboard/history?toggle=true"; }
     // Mod+K                               hotkey-overlay-title="Switch Keyboard Language" { switch-layout "next"; }
@@ -17,7 +18,7 @@ binds {
 
     // ─── Shell ───
     // Optional: uncomment to enable.
-    // Settings pages: appearance, display, system, mouse, keyboard, timezone, information, manual
+    // Settings pages: appearance, display, system, mouse, keyboard, shortcuts, timezone, information, manual
     // Mod+B                               repeat=false hotkey-overlay-title="Toggle Sidebar" { spawn "qs" "-c" "pond-shell" "ipc" "call" "sidebar" "toggle"; }
     // Mod+Comma                           repeat=false hotkey-overlay-title="Toggle Settings" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "toggle"; }
     // Mod+Shift+Comma                     repeat=false hotkey-overlay-title="Open Display Settings" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "open" "display"; }

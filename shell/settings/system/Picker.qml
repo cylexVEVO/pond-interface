@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as System
 import ".." as Settings
 import "../.." as Shell
 
@@ -139,12 +140,12 @@ Settings.Modal {
     },
     Rectangle {
       objectName: "keyboardShortcut"
-      visible: root.multiple
+      visible: root.multiple && System.State.languageChord !== "None"
       x: root.width - 106; y: 21; width: 76; height: 40; radius: 8
       color: shortcutHover.hovered ? Shell.PanelStyle.rowHover : "transparent"
       border.width: shortcutHover.hovered ? 0 : 1; border.color: Shell.PanelStyle.outline
       Accessible.role: Accessible.StaticText
-      Accessible.name: "Shortcut: Super+K switches between languages"
+      Accessible.name: "Shortcut: " + System.State.languageChord + " switches between languages"
       Text {
         anchors.centerIn: parent
         text: "Shortcut"; color: Shell.Theme.colors.text; opacity: shortcutHover.hovered ? 1 : 0.5
@@ -154,9 +155,21 @@ Settings.Modal {
       HoverHandler { id: shortcutHover }
     },
     Item {
+      id: shortcutTip
       objectName: "keyboardShortcutTip"
-      x: root.width + 10; width: 160; height: 142
-      visible: shortcutHover.hovered
+      readonly property var keys: {
+        const chord = System.State.languageChord || "Super+K";
+        return chord.split("+").map(part => {
+          const lower = part.toLowerCase();
+          if (lower === "super" || lower === "mod") return "spr";
+          if (lower === "ctrl" || lower === "control") return "ctrl";
+          if (lower === "alt") return "alt";
+          if (lower === "shift") return "sft";
+          return part.length <= 3 ? part.toLowerCase() : part.slice(0, 3).toLowerCase();
+        });
+      }
+      x: root.width + 10; width: Math.max(160, 20 + keys.length * 46); height: 142
+      visible: shortcutHover.hovered && System.State.languageChord !== "None"
       Item {
         anchors { fill: parent; margins: -90; bottomMargin: -180 }
         layer.enabled: true
@@ -171,7 +184,7 @@ Settings.Modal {
         anchors.fill: parent; radius: 24
         color: Settings.Style.card
         Text {
-          x: 20; y: 15; width: 120
+          x: 20; y: 15; width: parent.width - 40
           text: "Switch between languages"; color: Shell.Theme.colors.text
           wrapMode: Text.WordWrap; lineHeight: 21; lineHeightMode: Text.FixedHeight
           font.family: Shell.Theme.fontFamily; font.weight: Font.Medium; font.pixelSize: 15
@@ -179,10 +192,11 @@ Settings.Modal {
         Row {
           x: 20; y: 82; spacing: 6
           Repeater {
-            model: ["spr", "k"]
+            model: shortcutTip.keys
             delegate: Rectangle {
               id: key
               required property string modelData
+              required property int index
               width: 40; height: 40; radius: 4
               color: "transparent"; border.color: Qt.rgba(1, 1, 1, 0.15)
               Rectangle {
@@ -193,8 +207,8 @@ Settings.Modal {
                 anchors.centerIn: parent
                 text: key.modelData; color: Shell.Theme.colors.text
                 font.family: Shell.Theme.fontFamily
-                font.weight: key.modelData === "k" ? Font.Bold : Font.DemiBold
-                font.pixelSize: key.modelData === "k" ? 12 : 10
+                font.weight: key.index === shortcutTip.keys.length - 1 ? Font.Bold : Font.DemiBold
+                font.pixelSize: key.index === shortcutTip.keys.length - 1 ? 12 : 10
               }
             }
           }
