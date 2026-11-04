@@ -40,6 +40,7 @@ gestures {
 // Keep the wallpaper stationary behind workspaces and the overview.
 layer-rule {
     match namespace="^pond-wallpaper$"
+    match namespace="^vicinae$" layer="background"
     place-within-backdrop true
 }
 

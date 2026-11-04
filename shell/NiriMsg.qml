@@ -49,14 +49,30 @@ Singleton {
         && !Object.values(_windows).some(win => win.workspaceId === w.id));
   }
 
-  // Bottom layer: already underneath windows so the active workspace can slide
-  // away and reveal it (or slide in and hide it). Normal Mod+Space stays on top.
-  function _openWorkspaceLauncher() {
+  // Niri's bottom layer slides with workspaces. Background + the backdrop
+  // rule keeps the visual fixed; Vicinae provides a separate input surface.
+  function _openWorkspaceLauncher(force) {
     workspaceLauncherCloseTimer.stop();
-    if (_workspaceLauncherOpen)
-      return;
     _workspaceLauncherOpen = true;
-    Quickshell.execDetached(["vicinae", "vicinae://open?layer=bottom"]);
+    _queueLauncherCommand("vicinae://open?layer=background&workspace=true"
+        + (force ? "&force=true" : ""));
+  }
+
+  property var _launcherCommands: []
+  function _queueLauncherCommand(uri) {
+    // Keep IPC requests ordered: a slow open must never arrive after a close.
+    _launcherCommands.push(uri);
+    _runNextLauncherCommand();
+  }
+  function _runNextLauncherCommand() {
+    if (launcherCommand.running || _launcherCommands.length === 0)
+      return;
+    launcherCommand.command = ["vicinae", _launcherCommands.shift()];
+    launcherCommand.running = true;
+  }
+  Process {
+    id: launcherCommand
+    onExited: Qt.callLater(root._runNextLauncherCommand)
   }
 
   function _closeWorkspaceLauncher(immediate) {
@@ -65,7 +81,7 @@ Singleton {
     if (immediate) {
       workspaceLauncherCloseTimer.stop();
       _workspaceLauncherOpen = false;
-      Quickshell.execDetached(["vicinae", "close"]);
+      _queueLauncherCommand("vicinae://close?workspace=true");
       return;
     }
     // Don't restart — later niri events would otherwise keep postponing the close.
@@ -76,7 +92,7 @@ Singleton {
   // Stay open under windows whenever this output still has an empty workspace,
   // including while an occupied one is focused — otherwise keyboard switches
   // only learn about the empty destination after the slide has started/finished.
-  function _syncWorkspaceLauncher() {
+  function _syncWorkspaceLauncher(force) {
     if (overviewOpen || dragOrigin) {
       _closeWorkspaceLauncher(true);
       return;
@@ -87,7 +103,7 @@ Singleton {
       // Cancel a pending close if we came back to an output that still has a hole.
       if (workspaceLauncherCloseTimer.running)
         workspaceLauncherCloseTimer.stop();
-      _openWorkspaceLauncher();
+      _openWorkspaceLauncher(force);
       return;
     }
     // No empty workspace left on this output: delay so a newly opened window can
@@ -102,7 +118,7 @@ Singleton {
       if (!root._workspaceLauncherOpen)
         return;
       root._workspaceLauncherOpen = false;
-      Quickshell.execDetached(["vicinae", "close"]);
+      root._queueLauncherCommand("vicinae://close?workspace=true");
     }
   }
 
@@ -361,7 +377,9 @@ Singleton {
     } else {
       return;
     }
-    _syncWorkspaceLauncher();
+    if (ev.WorkspacesChanged || ev.WorkspaceActivated || ev.WindowsChanged
+        || ev.WindowOpenedOrChanged || ev.WindowClosed || ev.OverviewOpenedOrClosed)
+      _syncWorkspaceLauncher(!!ev.WorkspaceActivated);
     _recompute();
   }
 
