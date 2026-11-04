@@ -9,6 +9,7 @@ Settings.Modal {
     title: "Fingerprints"
     closeLabel: "Back to System"
     bodyTop: 92
+    property string probeError: ""
     property bool checkedSetup: false
     property bool detailsOpen: false
     property bool choosingFinger: false
@@ -57,13 +58,22 @@ Settings.Modal {
     Process {
         id: probe
         command: ["python3", Quickshell.shellDir + "/settings/system/fingerprint_setup.py", "status"]
+        onRunningChanged: if (running) { root.probeError = ""; root.checkedSetup = false; }
         stdout: StdioCollector {
             onStreamFinished: {
                 try { root.setupState = JSON.parse(text); root.checkedSetup = true; }
-                catch (e) { root.checkedSetup = true; root.notice = "Couldn’t check setup."; }
+                catch (e) {
+                    root.checkedSetup = true;
+                    root.setupState = {ready: false, canSetup: false, blocker: "Setup check returned an invalid response."};
+                }
             }
         }
-        stderr: SplitParser { onRead: data => root.output += data + "\n" }
+        stderr: SplitParser { onRead: data => root.probeError += data + "\n" }
+        onExited: (code, status) => {
+            root.checkedSetup = true;
+            if (code !== 0) root.setupState = {ready: false, canSetup: false,
+                blocker: "Couldn’t check setup: " + (root.probeError.trim() || "helper exited with code " + code)};
+        }
     }
     Process {
         id: installer
@@ -119,7 +129,7 @@ Settings.Modal {
                 : root.setupState.ready ? "Use a fingerprint to log in and unlock."
                 : root.settingUp ? "Setting up…"
                 : root.setupState.canSetup ? "Set up fingerprint login first."
-                : root.setupState.blocker || "Setup is unavailable."
+                : root.setupState.blocker || "Setup check returned no reason. Check again."
         }
         Action {
             visible: root.checkedSetup && !root.setupState.ready && root.setupState.canSetup

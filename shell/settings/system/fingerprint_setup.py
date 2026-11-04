@@ -2,6 +2,7 @@
 """Fixed-purpose privileged setup. No caller-controlled commands or paths."""
 import json
 import os
+import platform
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,14 +14,22 @@ LOCK = 'auth required pam_fprintd.so max-tries=3 timeout=30\naccount required pa
 LOGIN = 'auth sufficient pam_fprintd.so max-tries=3 timeout=30\n'
 
 
+def distribution():
+    return platform.freedesktop_os_release()
+
+
 def packages():
-    distro = __import__('platform').freedesktop_os_release().get('ID', '')
-    return {
+    release = distribution()
+    recipes = {
         'ubuntu': ['/usr/bin/apt-get', 'install', '-y', 'fprintd', 'libpam-fprintd'],
         'debian': ['/usr/bin/apt-get', 'install', '-y', 'fprintd', 'libpam-fprintd'],
         'arch': ['/usr/bin/pacman', '-S', '--needed', '--noconfirm', 'fprintd'],
         'fedora': ['/usr/bin/dnf', 'install', '-y', 'fprintd', 'fprintd-pam'],
-    }.get(distro)
+    }
+    for family in [release.get('ID', ''), *release.get('ID_LIKE', '').split()]:
+        if family in recipes:
+            return recipes[family]
+    return None
 
 
 def login_config(text):
@@ -56,11 +65,18 @@ def status():
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
-    blocker = ('Install polkit to enable setup.' if not shutil.which('pkexec')
-               else 'Automatic setup isn’t available on this system.' if not packages() else '')
-    return {'ready': not missing, 'missing': missing, 'blocker': blocker,
-            'canSetup': bool(packages() and shutil.which('pkexec')),
-            'sddm': bool(sddm)}
+    release = distribution()
+    system = release.get('PRETTY_NAME', release.get('ID', 'Unknown Linux distribution'))
+    command = packages()
+    blockers = []
+    if not command:
+        blockers.append(f"No package installer is configured for {system} (ID: {release.get('ID', 'unknown')}; family: {release.get('ID_LIKE', 'not declared')}).")
+    elif not Path(command[0]).is_file():
+        blockers.append(f'{system} needs {command[0]} for setup, but it is missing.')
+    if not Path('/usr/bin/pkexec').is_file():
+        blockers.append('pkexec is missing. Install your distribution’s polkit package to allow administrator authentication.')
+    return {'ready': not missing, 'missing': missing, 'blocker': '\n\n'.join(blockers),
+            'system': system, 'canSetup': not blockers, 'sddm': bool(sddm)}
 
 
 def launch_command():

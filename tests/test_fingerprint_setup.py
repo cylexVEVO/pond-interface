@@ -53,8 +53,32 @@ class SetupTests(unittest.TestCase):
 
     def test_setup_available_without_installed_helper(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'):
+            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True):
                 result = setup.status()
             self.assertTrue(result['canSetup'])
             self.assertFalse(result['ready'])
             self.assertEqual(result['blocker'], '')
+
+    def test_arch_derivative_uses_declared_family(self):
+        with patch.object(setup, 'distribution', return_value={'ID': 'endeavouros', 'ID_LIKE': 'arch'}):
+            self.assertEqual(setup.packages()[0], '/usr/bin/pacman')
+
+    def test_direct_distribution_precedes_family(self):
+        with patch.object(setup, 'distribution', return_value={'ID': 'ubuntu', 'ID_LIKE': 'debian'}):
+            self.assertEqual(setup.packages()[0], '/usr/bin/apt-get')
+
+    def test_unsupported_system_is_named(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'distribution', return_value={'ID': 'unknown-os', 'PRETTY_NAME': 'Example Linux'}), patch.object(Path, 'is_file', return_value=True):
+                result = setup.status()
+            self.assertFalse(result['canSetup'])
+            self.assertIn('Example Linux', result['blocker'])
+            self.assertIn('unknown-os', result['blocker'])
+
+    def test_missing_package_manager_and_pkexec_are_explained(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['/usr/bin/pacman']), patch.object(Path, 'is_file', return_value=False):
+                result = setup.status()
+            self.assertFalse(result['canSetup'])
+            self.assertIn('/usr/bin/pacman', result['blocker'])
+            self.assertIn('pkexec is missing', result['blocker'])
