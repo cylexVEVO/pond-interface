@@ -24,6 +24,31 @@ PanelWindow {
   property var revealRanks: []
   readonly property int cardCount: primaryButtons.length + sessionButtons.length
   property string displayedPage: Settings.State.page || "appearance"
+  property real pageOpacity: 1
+  property real pageOffset: 0
+  property real pageScale: 1
+  property int slideDirection: 1
+
+  function resetPageMotion() {
+    pageTransition.stop();
+    pageOpacity = 1;
+    pageOffset = 0;
+    pageScale = 1;
+  }
+
+  function navigatePage() {
+    const next = Settings.State.page;
+    if (!next) { resetPageMotion(); return; }
+    if (!targetOpen || !modal.item || modal.opacity < 0.01) {
+      resetPageMotion();
+      displayedPage = next;
+      return;
+    }
+    if (next === displayedPage && !pageTransition.running) return;
+    pageTransition.stop();
+    slideDirection = Settings.State.navigationDirection;
+    pageTransition.start();
+  }
 
   readonly property bool targetOpen: Settings.State.opened
       && Settings.State.outputName === (menuScreen ? menuScreen.name : "")
@@ -138,8 +163,7 @@ PanelWindow {
   Connections {
     target: Settings.State
     function onPageChanged() {
-      // Retain the outgoing page until its exit transition finishes.
-      if (Settings.State.page !== "") root.displayedPage = Settings.State.page;
+      root.navigatePage();
     }
   }
 
@@ -276,19 +300,52 @@ PanelWindow {
       system: systemPage, mouse: mousePage, lock: lockPage, keyboard: keyboardPage,
       shortcuts: shortcutsPage, timezone: timezonePage, fingerprints: fingerprintsPage
     })[root.displayedPage] || appearancePage
-    enabled: root.modalOpen && !Authentication.State.promptActive
-    opacity: root.modalOpen ? 1 : 0
+    enabled: root.modalOpen && !Authentication.State.promptActive && !pageTransition.running
+    opacity: root.modalOpen ? root.pageOpacity : 0
+    transform: [
+      Translate { x: root.pageOffset },
+      Scale { origin.x: modal.width / 2; origin.y: modal.height / 2; xScale: root.pageScale; yScale: root.pageScale }
+    ]
     scale: root.modalOpen ? 1 : 0.96
     Behavior on opacity {
-      enabled: root.displayedPage !== "appearance"
+      enabled: root.displayedPage !== "appearance" && !pageTransition.running
       NumberAnimation { duration: Settings.Style.closeDuration; easing.type: Easing.OutCubic }
     }
     Behavior on scale { NumberAnimation { duration: Settings.Style.closeDuration; easing.type: Easing.OutCubic } }
-    onLoaded: item.forceActiveFocus()
+    onLoaded: if (root.modalOpen && !Authentication.State.promptActive) item.forceActiveFocus()
     onXChanged: cardBlur.changed()
     onYChanged: cardBlur.changed()
     onScaleChanged: cardBlur.changed()
   }
+  // Swap only once the old surface has faded; never keep two live settings
+  // pages around (some pages own authentication or enrollment processes).
+  SequentialAnimation {
+    id: pageTransition
+    ParallelAnimation {
+      NumberAnimation { target: root; property: "pageOpacity"; to: 0; duration: 100; easing.type: Easing.InCubic }
+      NumberAnimation { target: root; property: "pageOffset"; to: -14 * root.slideDirection; duration: 100; easing.type: Easing.InCubic }
+      NumberAnimation { target: root; property: "pageScale"; to: 0.985; duration: 100; easing.type: Easing.InCubic }
+    }
+    ScriptAction {
+      script: {
+        root.displayedPage = Settings.State.page;
+        root.pageOffset = 28 * root.slideDirection;
+        root.pageScale = 0.985;
+      }
+    }
+    ParallelAnimation {
+      NumberAnimation { target: root; property: "pageOpacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+      NumberAnimation { target: root; property: "pageOffset"; to: 0; duration: 260; easing.type: Easing.OutQuint }
+      NumberAnimation { target: root; property: "pageScale"; to: 1; duration: 260; easing.type: Easing.OutQuint }
+    }
+    onFinished: {
+      if (root.modalOpen && !Authentication.State.promptActive && modal.item)
+        modal.item.forceActiveFocus();
+    }
+  }
+  onPageOffsetChanged: cardBlur.changed()
+  onPageScaleChanged: cardBlur.changed()
+
   Component {
     id: displayPage
     Display.Panel {
@@ -421,6 +478,7 @@ PanelWindow {
   }
 
   function beginClose() {
+    resetPageMotion();
     revealTimer.stop();
     revealStep = -1;
     if (presented)

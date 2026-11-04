@@ -12,6 +12,7 @@ Singleton {
   property bool opened: false
   property string page: ""
   property var pageHistory: []
+  property int navigationDirection: 1
   property string outputName: ""
   signal opening
   property string pendingSessionAction: ""
@@ -53,12 +54,14 @@ Singleton {
 
   function openPage(name) {
     if (pages.indexOf(name) < 0) return;
+    navigationDirection = 1;
     pageHistory = pageHistory.concat(page);
     page = name;
   }
 
   function back() {
     if (!pageHistory.length) { close(); return; }
+    navigationDirection = -1;
     page = pageHistory[pageHistory.length - 1];
     pageHistory = pageHistory.slice(0, -1);
   }
