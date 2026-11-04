@@ -24,11 +24,11 @@ PanelWindow {
   readonly property real effectiveListHeight:
       measuredItemCount === itemCount && measuredListHeight > 0
       ? measuredListHeight : itemCount * Notifications.Style.rowHeight
-  readonly property real panelHeight: listMode
-      ? Math.min(Notifications.Style.panelHeaderHeight
-                 + Math.max(92, effectiveListHeight),
-                 Notifications.Style.panelMaxHeight)
-      : effectiveListHeight
+  readonly property real panelHeight: Math.min(
+      Math.max(calendar.implicitHeight + 16,
+               Notifications.Style.panelHeaderHeight + effectiveListHeight),
+      Math.min(Notifications.Style.panelMaxHeight,
+               height - panelTop - Notifications.Style.desktopMargin))
   readonly property real panelLeft: Shell.Theme.sidebarOuterMargin + bar.cardWidth
       + Notifications.Style.desktopMargin
   readonly property real panelTop: Shell.Theme.sidebarOuterMargin
@@ -37,8 +37,7 @@ PanelWindow {
   screen: bar.screen
   visible: requested || reveal > 0.001
   color: "transparent"
-  BackgroundEffect.blurRegion: Shell.Theme.translucent ? combinedBlur : null
-  Region { id: combinedBlur; regions: [panelBlur, calendar.blurRegion] }
+  BackgroundEffect.blurRegion: Shell.Theme.translucent ? panelBlur : null
   Region {
     id: panelBlur
     item: root.requested && root.reveal > Shell.PanelStyle.blurRevealOpacity ? panelBackground : null
@@ -68,18 +67,11 @@ PanelWindow {
     calendar.forceActiveFocus();
   }
 
-  Shell.Shadow {
-    anchors.fill: calendar
-    cornerRadius: calendar.radius
-    shadows: Shell.PanelStyle.frontShadows
-    opacity: root.reveal
-    z: 2
-  }
-
   Calendar.Card {
     id: calendar
-    x: panelBackground.x + Notifications.Style.interactiveWidth + 10
-    y: root.panelTop
+    stacked: true
+    x: panelBackground.x + Notifications.Style.interactiveWidth + 8
+    y: root.panelTop + 8
     opacity: root.reveal
     z: 3
     Keys.onPressed: event => {
@@ -94,8 +86,10 @@ PanelWindow {
 
   Text {
     x: panelBackground.x
-    y: panelBackground.y + Notifications.Style.panelHeaderHeight + 32
-    width: panelBackground.width
+    y: panelBackground.y + Notifications.Style.panelHeaderHeight
+    width: Notifications.Style.panelWidth
+    height: root.panelHeight - Notifications.Style.panelHeaderHeight
+    verticalAlignment: Text.AlignVCenter
     text: "No notifications"
     horizontalAlignment: Text.AlignHCenter
     color: Notifications.Style.foreground
@@ -118,7 +112,7 @@ PanelWindow {
   MouseArea {
     x: root.panelLeft - (1 - root.reveal) * 4
     y: root.panelTop
-    width: Notifications.Style.interactiveWidth
+    width: panelBackground.width
     height: root.panelHeight
     z: 2
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
@@ -138,7 +132,7 @@ PanelWindow {
     id: panelBackground
     x: root.panelLeft - (1 - root.reveal) * 4
     y: root.panelTop
-    width: Notifications.Style.panelWidth
+    width: Notifications.Style.interactiveWidth + calendar.width + 16
     height: root.panelHeight
     radius: Notifications.Style.radius
     color: Shell.PanelStyle.panelGradient ? "transparent" : Shell.PanelStyle.panelSurface
@@ -154,11 +148,11 @@ PanelWindow {
     x: panelBackground.x + Notifications.Style.contentPadding
     y: panelBackground.y + Notifications.Style.contentPadding
     height: 28
-    text: root.itemCount + " Notifications"
+    text: root.itemCount > 0 ? "Notifications · " + root.itemCount : "Notifications"
     color: Shell.Theme.colors.notificationTitle
-    font.family: Shell.Theme.titleFontFamily
-    font.weight: Font.Normal
-    font.pixelSize: 20
+    font.family: Shell.Theme.fontFamily
+    font.weight: Font.Medium
+    font.pixelSize: 13
     visible: root.listMode
     opacity: root.reveal
     z: 3
@@ -204,6 +198,16 @@ PanelWindow {
     z: 3
   }
 
+  Rectangle {
+    x: panelBackground.x + Notifications.Style.interactiveWidth
+    y: panelBackground.y + 16
+    width: 1
+    height: root.panelHeight - 32
+    color: Notifications.Style.divider
+    opacity: root.reveal
+    z: 3
+  }
+
   ClippingRectangle {
     id: listClip
     x: root.panelLeft - (1 - root.reveal) * 4
@@ -212,7 +216,7 @@ PanelWindow {
     height: root.panelHeight - (root.listMode ? 60 : 0)
     color: "transparent"
     bottomLeftRadius: root.listMode ? 16 : 0
-    bottomRightRadius: root.listMode ? 16 : 0
+    bottomRightRadius: 0
     opacity: root.reveal
     z: 3
 

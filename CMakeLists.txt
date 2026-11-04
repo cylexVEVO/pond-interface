@@ -12,3 +12,5 @@ qt_add_qml_module(pond_system
 target_include_directories(pond_system PRIVATE lockscreen/frontend/system)
 target_link_libraries(pond_system PRIVATE KF6::NetworkManagerQt Qt6::DBus Qt6::Gui wayland-client)
 set_target_properties(pond_systemplugin PROPERTIES INSTALL_RPATH "$ORIGIN")
+
+install(FILES config/pam.d/pond-fingerprint DESTINATION /etc/pam.d)

@@ -264,7 +264,7 @@ PanelWindow {
     sourceComponent: ({
       wallpaper: wallpaperPage, information: informationPage, manual: manualPage, display: displayPage, arrange: arrangePage,
       system: systemPage, mouse: mousePage, lock: lockPage, keyboard: keyboardPage,
-      shortcuts: shortcutsPage, timezone: timezonePage
+      shortcuts: shortcutsPage, timezone: timezonePage, fingerprints: fingerprintsPage
     })[root.displayedPage] || appearancePage
     enabled: root.modalOpen
     opacity: root.modalOpen ? 1 : 0
@@ -426,5 +426,9 @@ PanelWindow {
       order[other] = held;
     }
     return order;
+  }
+  Component {
+    id: fingerprintsPage
+    System.Fingerprints { availableHeight: root.height - 80 }
   }
 }

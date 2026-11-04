@@ -20,7 +20,7 @@ Singleton {
     "lock", "suspend", "reboot", "shutdown"
   ]
   readonly property var pages: [
-    "appearance", "wallpaper", "information", "manual", "display", "arrange", "system", "mouse", "lock", "keyboard", "shortcuts", "timezone"
+    "appearance", "wallpaper", "information", "manual", "display", "arrange", "system", "mouse", "lock", "keyboard", "shortcuts", "timezone", "fingerprints"
   ]
 
   Timer {

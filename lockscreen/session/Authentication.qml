@@ -6,6 +6,13 @@ import Quickshell.Services.Pam
 AuthSession {
     id: root
 
+    property bool fingerprintMode: false
+    function authenticateFingerprint() {
+        if (authenticationPending) return false;
+        fingerprintMode = true;
+        return authenticate("", true);
+    }
+
     property bool probePamService: true
     property string pamConfig: Quickshell.env("POND_PAM_SERVICE") || "login"
 
@@ -48,7 +55,7 @@ AuthSession {
     PamContext {
         id: nativePam
         configDirectory: root.pamConfigDirectory
-        config: root.pamConfig
+        config: root.fingerprintMode ? "pond-fingerprint" : root.pamConfig
         // An empty user makes PamContext resolve getuid() itself. Avoid trusting
         // a mutable environment variable for the authentication identity.
         user: ""

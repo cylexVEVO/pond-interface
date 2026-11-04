@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 import QtQml.Models
 import Pond.System
 import "../frontend" as Frontend
@@ -91,6 +92,18 @@ Item {
         compositorIndex: root.sessionIndex
         onUserStepRequested: direction => root.selectUser(direction)
         onCompositorRequested: index => root.selectSession(index)
+    }
+    Button {
+        z: 10
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 32
+        text: root.requestPending ? "Follow fingerprint reader prompts" : "Log in with fingerprint"
+        enabled: !root.requestPending && !ui.inputBlocked
+        onClicked: {
+            root.requestPending = true;
+            root.loginBackend.login(root.selectedUser.name, "", root.sessionIndex);
+        }
     }
     Connections {
         target: root.loginBackend

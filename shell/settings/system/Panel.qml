@@ -43,6 +43,11 @@ Settings.Modal {
       title: "Timezone"; value: System.State.timezoneLabel
       onClicked: Settings.State.openPage("timezone")
     }
+    Settings.Field {
+      width: parent.width; navigation: true
+      title: "Fingerprints"; value: "Manage"
+      onClicked: Settings.State.openPage("fingerprints")
+    }
     Text {
       width: parent.width; visible: !!System.State.error
       text: System.State.error; color: "#ffb4ab"; wrapMode: Text.Wrap

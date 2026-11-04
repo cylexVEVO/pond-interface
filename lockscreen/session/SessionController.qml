@@ -15,9 +15,16 @@ Item {
     function attemptUnlock(credential) {
         if (phase !== "editing")
             return;
+        authentication.fingerprintMode = false;
         phase = "authenticating";
         if (!authentication.authenticate(credential))
             reject();
+    }
+
+    function attemptFingerprint() {
+        if (phase !== "editing") return;
+        phase = "authenticating";
+        if (!authentication.authenticateFingerprint()) reject();
     }
 
     function reject() {

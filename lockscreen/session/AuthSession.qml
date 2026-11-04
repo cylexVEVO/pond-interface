@@ -35,12 +35,12 @@ Item {
         clearPendingCredential();
     }
 
-    function authenticate(credential) {
+    function authenticate(credential, allowEmpty = false) {
         if (!pamReady || authenticationPending || !backend || backend.active)
             return false;
 
         const snapshot = String(credential || "");
-        if (snapshot.length === 0)
+        if (snapshot.length === 0 && !allowEmpty)
             return false;
 
         _pendingCredential = snapshot;
