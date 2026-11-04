@@ -17,6 +17,21 @@ Settings.Modal {
     property string selectedFinger: "right-index-finger"
     property string action: ""
     property string notice: ""
+    property int acceptedScans: 0
+    property string scanState: ""
+    property int scanSequence: 0
+    function enrollmentLine(line) {
+        output += line + "\n";
+        if (action !== "enroll") return;
+        try {
+            const event = JSON.parse(line);
+            if (event.kind === "log" || scanState === "complete" || scanState === "failed") return;
+            scanState = event.kind;
+            if (event.kind === "accepted") acceptedScans++;
+            notice = event.message;
+            scanSequence++;
+        } catch (e) { /* Raw process errors remain available in Details. */ }
+    }
     readonly property bool busy: operation.running || settingUp
     function fingerLabel(value) {
         const label = value.replace(/-/g, " ");
@@ -32,6 +47,9 @@ Settings.Modal {
         if (operation.running) return;
         output = "";
         action = args[0];
+        acceptedScans = 0;
+        scanState = action === "enroll" ? "waiting" : "";
+        scanSequence = 0;
         notice = action === "enroll" ? "Touch the reader. Lift your finger and repeat." : action === "verify" ? "Touch the reader." : "";
         confirmDelete = false;
         operation.command = ["python3", Quickshell.shellDir + "/settings/system/fingerprints.py"].concat(args);
@@ -45,12 +63,17 @@ Settings.Modal {
     Keys.onEscapePressed: { if (settingUp) return; if (choosingFinger) { choosingFinger = false; return; } cancel(); Settings.State.back(); }
     Process {
         id: operation
-        stdout: SplitParser { onRead: data => root.output += data + "\n" }
+        stdout: SplitParser { onRead: data => root.enrollmentLine(data) }
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
         onExited: (code, status) => {
             if (root.action === "cancel") root.notice = "Scan cancelled.";
+            else if (root.action === "enroll") {
+                if (root.scanState !== "complete" && root.scanState !== "failed") {
+                    root.scanState = "failed";
+                    root.notice = "Enrollment stopped before the fingerprint was saved. Try again.";
+                }
+            }
             else if (code !== 0) { root.notice = "Couldn’t finish. See details below."; }
-            else if (root.action === "enroll") root.notice = "Fingerprint saved.";
             else if (root.action === "delete") root.notice = "Fingerprints removed.";
             else if (root.action === "verify") root.notice = "Scan finished. See details for the result.";
             else root.notice = "";
@@ -171,7 +194,46 @@ Settings.Modal {
                 onClicked: { root.run(["list"]); root.detailsOpen = true; }
             }
         }
-        Copy { visible: !!root.notice; text: root.notice; opacity: 0.9 }
+        Rectangle {
+            visible: root.action === "enroll"
+            width: fields.width; height: scanContent.height + 32; radius: 12
+            color: Shell.Theme.colors.settingsRow
+            border.width: 1
+            border.color: root.scanState === "retry" || root.scanState === "failed" ? "#e6b06c" : Qt.alpha(Shell.PanelStyle.accent, 0.45)
+            Column {
+                id: scanContent
+                x: 16; y: 16; width: parent.width - 32; spacing: 10
+                Text {
+                    text: root.scanState === "complete" ? "Fingerprint saved"
+                        : root.scanState === "failed" ? "Enrollment stopped"
+                        : root.acceptedScans === 0 ? "Scan your finger"
+                        : root.acceptedScans + (root.acceptedScans === 1 ? " scan accepted" : " scans accepted")
+                    color: Shell.Theme.colors.text
+                    font.family: Shell.Theme.fontFamily; font.pixelSize: 16
+                }
+                Flow {
+                    width: parent.width; spacing: 5
+                    Repeater {
+                        model: root.acceptedScans
+                        Rectangle { width: 10; height: 10; radius: 5; color: Shell.PanelStyle.accent }
+                    }
+                }
+                Copy {
+                    width: parent.width; text: root.notice; opacity: 0.9
+                    color: root.scanState === "retry" || root.scanState === "failed" ? "#e6b06c" : Shell.Theme.colors.text
+                    Connections {
+                        target: root
+                        function onScanSequenceChanged() { scanPulse.restart(); }
+                    }
+                    SequentialAnimation on opacity {
+                        id: scanPulse; running: false
+                        NumberAnimation { to: 0.45; duration: 80 }
+                        NumberAnimation { to: 0.9; duration: 160 }
+                    }
+                }
+            }
+        }
+        Copy { visible: !!root.notice && root.action !== "enroll"; text: root.notice; opacity: 0.9 }
         Action { visible: operation.running; text: "Cancel"; onClicked: root.cancel() }
         Column {
             width: fields.width; spacing: 8
