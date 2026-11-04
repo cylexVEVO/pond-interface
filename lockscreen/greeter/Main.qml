@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import QtQml.Models
 import Pond.System
 import "../frontend" as Frontend
@@ -15,6 +14,12 @@ Item {
     property int usersRevision: 0
     property int sessionsRevision: 0
     property bool requestPending: false
+    property bool fingerprintAttempt: false
+    property bool attemptAccepted: false
+    property string queuedPassword: ""
+    property string inFlightPassword: ""
+    property int fastFingerprintFailures: 0
+    property int ignoredLogins: 0
     readonly property var selectedUser: {
         usersRevision;
         return users.objectAt(userIndex);
@@ -25,16 +30,43 @@ Item {
     }
 
     function selectUser(direction) {
-        if (!ui.acceptingInput || users.count < 2)
+        if (!ui.acceptingInput || requestPending || users.count < 2)
             return;
         userIndex = (userIndex + direction + users.count) % users.count;
         ui.resetInput();
     }
     function selectSession(index) {
-        if (!ui.acceptingInput || index < 0 || index >= desktops.count)
+        if (!ui.acceptingInput || requestPending || index < 0 || index >= desktops.count)
             return;
         sessionIndex = index;
         ui.refocusRequested();
+    }
+
+    // SDDM runs one PAM conversation at a time, and pam_fprintd is first.
+    // Start it immediately so a finger is enough. A password typed during
+    // that scan is sent when the scan ends; a second login() while auth is
+    // active is discarded by the daemon.
+    function beginFingerprint() {
+        if (requestPending || ui.authenticationPending || queuedPassword.length || fastFingerprintFailures >= 3)
+            return;
+        if (!selectedUser || sessionIndex < 0 || sessionIndex >= desktops.count)
+            return;
+        fingerprintAttempt = true;
+        attemptAccepted = false;
+        inFlightPassword = "";
+        requestPending = true;
+        attemptWatch.restart();
+        loginBackend.login(selectedUser.name, "", sessionIndex);
+    }
+
+    function beginPassword(credential) {
+        fingerprintAttempt = false;
+        attemptAccepted = false;
+        queuedPassword = "";
+        inFlightPassword = credential;
+        requestPending = true;
+        attemptWatch.restart();
+        loginBackend.login(selectedUser.name, credential, sessionIndex);
     }
 
     component Account: QtObject {
@@ -72,8 +104,11 @@ Item {
         powerBackend: power
         inputBlocked: !root.selectedUser || root.sessionIndex >= desktops.count
         onSubmitRequested: credential => {
-            root.requestPending = true;
-            root.loginBackend.login(root.selectedUser.name, credential, root.sessionIndex);
+            if (root.requestPending && root.fingerprintAttempt) {
+                root.queuedPassword = credential;
+                return;
+            }
+            root.beginPassword(credential);
         }
         onSuccessAnimationFinished: {
             exitTransition.animationPaused = false;
@@ -93,32 +128,89 @@ Item {
         onUserStepRequested: direction => root.selectUser(direction)
         onCompositorRequested: index => root.selectSession(index)
     }
-    Button {
-        z: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 32
-        text: root.requestPending ? "Follow fingerprint reader prompts" : "Log in with fingerprint"
-        enabled: !root.requestPending && !ui.inputBlocked
-        onClicked: {
-            root.requestPending = true;
-            root.loginBackend.login(root.selectedUser.name, "", root.sessionIndex);
+    Timer {
+        id: fingerprintArm
+        interval: 400
+        repeat: true
+        running: !root.requestPending && !ui.authenticationPending && !root.queuedPassword.length
+            && root.fastFingerprintFailures < 3 && !deferredPassword.running
+        onTriggered: root.beginFingerprint()
+    }
+    // login() while the previous helper is still exiting never reaches PAM and
+    // never answers. A real attempt emits an info message almost immediately.
+    Timer {
+        id: attemptWatch
+        interval: 3000
+        onTriggered: {
+            if (!root.requestPending || root.attemptAccepted)
+                return;
+            root.ignoredLogins++;
+            const password = root.inFlightPassword;
+            root.requestPending = false;
+            root.fingerprintAttempt = false;
+            root.inFlightPassword = "";
+            if (root.ignoredLogins >= 5) {
+                root.fastFingerprintFailures = 3;
+                if (password.length)
+                    ui.authenticationFailed();
+                return;
+            }
+            if (password.length)
+                root.beginPassword(password);
         }
+    }
+    Timer {
+        id: deferredPassword
+        interval: 500
+        property string password: ""
+        onTriggered: root.beginPassword(password)
     }
     Connections {
         target: root.loginBackend
+        function onInformationMessage() {
+            root.attemptAccepted = true;
+            root.ignoredLogins = 0;
+        }
         function onLoginSucceeded() {
-            if (!root.requestPending) return;
+            root.queuedPassword = "";
+            root.inFlightPassword = "";
+            root.fingerprintAttempt = false;
             root.requestPending = false;
+            attemptWatch.stop();
+            deferredPassword.stop();
             ui.authenticationSucceeded();
         }
         function onLoginFailed() {
             if (!root.requestPending) return;
+            const password = root.queuedPassword;
+            const wasFingerprint = root.fingerprintAttempt;
+            const accepted = root.attemptAccepted;
+            root.queuedPassword = "";
+            root.inFlightPassword = "";
+            root.fingerprintAttempt = false;
             root.requestPending = false;
-            ui.authenticationFailed();
+            attemptWatch.stop();
+            if (password.length) {
+                deferredPassword.password = password;
+                deferredPassword.restart();
+                return;
+            }
+            if (!wasFingerprint) {
+                ui.authenticationFailed();
+                return;
+            }
+            if (accepted)
+                root.fastFingerprintFailures = 0;
+            else
+                root.fastFingerprintFailures++;
         }
         function onSocketDisconnected() {
             root.requestPending = false;
+            root.fingerprintAttempt = false;
+            root.queuedPassword = "";
+            root.inFlightPassword = "";
+            attemptWatch.stop();
+            deferredPassword.stop();
             ui.active = false;
             ui.resetInput();
         }
