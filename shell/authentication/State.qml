@@ -6,6 +6,7 @@ import Quickshell.Io
 Singleton {
   id: root
   readonly property bool available: loader.status === Loader.Ready
+  readonly property bool promptActive: available && loader.item.promptActive
   readonly property bool registered: available && loader.item.registered
   readonly property bool busy: setup.running
   property string notice: ""

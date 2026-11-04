@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import ".." as Settings
+import "../../authentication" as Authentication
 import "../.." as Shell
 
 Settings.Modal {
@@ -38,7 +39,7 @@ Settings.Modal {
     }
     function cancel() { if (operation.running) { action = "cancel"; operation.signal(15); } }
     onBackRequested: { if (settingUp) return; if (choosingFinger) { choosingFinger = false; return; } cancel(); Settings.State.back(); }
-    onEnabledChanged: if (!enabled) cancel()
+    onEnabledChanged: if (!enabled && !Authentication.State.promptActive) cancel()
     Component.onCompleted: probe.running = true
     Component.onDestruction: cancel()
     Keys.onEscapePressed: { if (settingUp) return; if (choosingFinger) { choosingFinger = false; return; } cancel(); Settings.State.back(); }

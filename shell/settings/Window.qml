@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "." as Settings
 import ".." as Shell
+import "../authentication" as Authentication
 import "appearance" as Appearance
 import "display" as Display
 import "information" as Information
@@ -104,10 +105,11 @@ PanelWindow {
     bottom: true
   }
 
-  WlrLayershell.layer: WlrLayer.Overlay
+  // Authentication owns input until its request completes or is cancelled.
+  WlrLayershell.layer: Authentication.State.promptActive ? WlrLayer.Top : WlrLayer.Overlay
   WlrLayershell.namespace: "pond-settings-"
       + (screen ? screen.name : "unknown")
-  WlrLayershell.keyboardFocus: root.targetOpen
+  WlrLayershell.keyboardFocus: root.targetOpen && !Authentication.State.promptActive
       ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
   WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
@@ -116,6 +118,14 @@ PanelWindow {
     y: 0
     width: root.presented ? root.width : 0
     height: root.presented ? root.height : 0
+  }
+
+  Connections {
+    target: Authentication.State
+    function onPromptActiveChanged() {
+      if (!Authentication.State.promptActive && root.modalOpen && modal.item)
+        Qt.callLater(() => { if (!Authentication.State.promptActive && root.modalOpen && modal.item) modal.item.forceActiveFocus(); });
+    }
   }
 
   onTargetOpenChanged: {
@@ -148,7 +158,7 @@ PanelWindow {
 
   MouseArea {
     anchors.fill: parent
-    enabled: root.targetOpen
+    enabled: root.targetOpen && !Authentication.State.promptActive
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
     onClicked: Settings.State.close()
   }
@@ -160,7 +170,7 @@ PanelWindow {
     height: 538
     anchors.centerIn: parent
     clip: false
-    enabled: root.cardsOpen
+    enabled: root.cardsOpen && !Authentication.State.promptActive
     visible: opacity > 0
     opacity: root.cardsOpen ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Settings.Style.closeDuration; easing.type: Easing.OutCubic } }
@@ -234,7 +244,7 @@ PanelWindow {
     anchors.right: parent.right
     anchors.rightMargin: 10
     anchors.verticalCenter: parent.verticalCenter
-    enabled: root.cardsOpen
+    enabled: root.cardsOpen && !Authentication.State.promptActive
     visible: opacity > 0
     opacity: root.cardsOpen ? 1 : 0
     Keys.onEscapePressed: Settings.State.close()
@@ -247,7 +257,7 @@ PanelWindow {
     id: tray
     z: 3
     anchors.fill: parent
-    enabled: root.cardsOpen
+    enabled: root.cardsOpen && !Authentication.State.promptActive
     visible: opacity > 0
     opacity: root.cardsOpen ? 1 : 0
     Behavior on opacity {
@@ -266,7 +276,7 @@ PanelWindow {
       system: systemPage, mouse: mousePage, lock: lockPage, keyboard: keyboardPage,
       shortcuts: shortcutsPage, timezone: timezonePage, fingerprints: fingerprintsPage
     })[root.displayedPage] || appearancePage
-    enabled: root.modalOpen
+    enabled: root.modalOpen && !Authentication.State.promptActive
     opacity: root.modalOpen ? 1 : 0
     scale: root.modalOpen ? 1 : 0.96
     Behavior on opacity {

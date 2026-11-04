@@ -7,11 +7,12 @@ import ".." as Shell
 Scope {
   id: root
   readonly property bool registered: agent.isRegistered
+  readonly property bool promptActive: agent.isActive && agent.flow !== null
   PolkitAgent { id: agent }
 
   // Destroy the entire prompt between requests, including any entered secret.
   Loader {
-    active: agent.isActive && agent.flow !== null
+    active: root.promptActive
     sourceComponent: PanelWindow {
       id: window
       readonly property var flow: agent.flow
@@ -25,6 +26,12 @@ Scope {
       WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
       exclusionMode: ExclusionMode.Ignore
 
+      function focusResponse() {
+        if (visible && flow && flow.isResponseRequired) password.focusEditor();
+      }
+      onVisibleChanged: if (visible) Qt.callLater(focusResponse)
+      Component.onCompleted: Qt.callLater(focusResponse)
+
       function submit() {
         if (!flow || !flow.isResponseRequired) return;
         const response = password.text;
@@ -37,7 +44,7 @@ Scope {
         function onIsResponseRequiredChanged() {
           password.text = "";
           password.revealed = false;
-          if (window.flow.isResponseRequired) password.focusEditor();
+          if (window.flow.isResponseRequired) Qt.callLater(window.focusResponse);
         }
       }
       Shell.PanelBackground {
@@ -93,7 +100,7 @@ Scope {
             password: !window.flow || !window.flow.responseVisible
             placeholderText: window.flow ? window.flow.inputPrompt : "Password"
             onAccepted: window.submit()
-            Component.onCompleted: focusEditor()
+            onVisibleChanged: if (visible) Qt.callLater(window.focusResponse)
           }
           Text {
             width: parent.width
