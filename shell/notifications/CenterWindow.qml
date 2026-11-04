@@ -5,10 +5,9 @@ import Quickshell
 import Quickshell.Wayland
 import "." as Notifications
 import ".." as Shell
+import "../calendar" as Calendar
 
-// Focused notification pullout. The full-screen surface provides
-// outside-click dismissal; the 280px panel itself remains aligned
-// to the live sidebar edge in both expanded and collapsed states.
+// Shared calendar and notification menu.
 PanelWindow {
   id: root
 
@@ -19,7 +18,7 @@ PanelWindow {
       && Notifications.State.panelOutputName === outputName
   property real reveal: requested ? 1 : 0
   readonly property int itemCount: Notifications.State.notificationCount
-  readonly property bool listMode: itemCount >= 2
+  readonly property bool listMode: true
   property real measuredListHeight: 0
   property int measuredItemCount: -1
   readonly property real effectiveListHeight:
@@ -27,21 +26,19 @@ PanelWindow {
       ? measuredListHeight : itemCount * Notifications.Style.rowHeight
   readonly property real panelHeight: listMode
       ? Math.min(Notifications.Style.panelHeaderHeight
-                 + effectiveListHeight,
+                 + Math.max(92, effectiveListHeight),
                  Notifications.Style.panelMaxHeight)
       : effectiveListHeight
   readonly property real panelLeft: Shell.Theme.sidebarOuterMargin + bar.cardWidth
       + Notifications.Style.desktopMargin
-  readonly property real panelTop: panelHeight >= Notifications.Style.panelMaxHeight
-      ? Notifications.Style.desktopMargin
-      : Math.max(Notifications.Style.desktopMargin,
-                 Math.min(bar.notificationCardCenterY - panelHeight / 2,
-                          height - Notifications.Style.desktopMargin - panelHeight))
+  readonly property real panelTop: Shell.Theme.sidebarOuterMargin
+
 
   screen: bar.screen
   visible: requested || reveal > 0.001
   color: "transparent"
-  BackgroundEffect.blurRegion: Shell.Theme.translucent ? panelBlur : null
+  BackgroundEffect.blurRegion: Shell.Theme.translucent ? combinedBlur : null
+  Region { id: combinedBlur; regions: [panelBlur, calendar.blurRegion] }
   Region {
     id: panelBlur
     item: root.requested && root.reveal > Shell.PanelStyle.blurRevealOpacity ? panelBackground : null
@@ -58,6 +55,7 @@ PanelWindow {
   WlrLayershell.layer: WlrLayer.Overlay
   WlrLayershell.namespace: "pond-notification-center-"
       + (outputName || "unknown")
+  WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
   WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
   mask: Region {
@@ -65,12 +63,55 @@ PanelWindow {
     regions: [root.bar.mask]
   }
 
+  onRequestedChanged: if (requested) {
+    calendar.goToday();
+    calendar.forceActiveFocus();
+  }
+
+  Shell.Shadow {
+    anchors.fill: calendar
+    cornerRadius: calendar.radius
+    shadows: Shell.PanelStyle.frontShadows
+    opacity: root.reveal
+    z: 2
+  }
+
+  Calendar.Card {
+    id: calendar
+    x: panelBackground.x + Notifications.Style.interactiveWidth + 10
+    y: root.panelTop
+    opacity: root.reveal
+    z: 3
+    Keys.onPressed: event => {
+      if (event.key === Qt.Key_Escape) Notifications.State.closePanel();
+      else if (event.key === Qt.Key_PageUp) moveMonth(-1);
+      else if (event.key === Qt.Key_PageDown) moveMonth(1);
+      else if (event.key === Qt.Key_Home) goToday();
+      else return;
+      event.accepted = true;
+    }
+  }
+
+  Text {
+    x: panelBackground.x
+    y: panelBackground.y + Notifications.Style.panelHeaderHeight + 32
+    width: panelBackground.width
+    text: "No notifications"
+    horizontalAlignment: Text.AlignHCenter
+    color: Notifications.Style.foreground
+    font.family: Shell.Theme.fontFamily
+    font.pixelSize: 13
+    opacity: root.reveal * 0.5
+    visible: root.itemCount === 0
+    z: 3
+  }
+
   Behavior on reveal { Shell.Motion { duration: Notifications.Style.panelDuration } }
 
   MouseArea {
     anchors.fill: parent
     z: 1
-    acceptedButtons: Qt.LeftButton
+    acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
     onClicked: Notifications.State.closePanel()
   }
 
@@ -80,7 +121,7 @@ PanelWindow {
     width: Notifications.Style.interactiveWidth
     height: root.panelHeight
     z: 2
-    acceptedButtons: Qt.LeftButton
+    acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
     onClicked: mouse => mouse.accepted = true
   }
 
@@ -89,7 +130,7 @@ PanelWindow {
     cornerRadius: panelBackground.radius
     shadows: Shell.PanelStyle.frontShadows
     opacity: root.reveal
-    visible: root.itemCount > 0
+    visible: true
     z: 2
   }
 
@@ -136,7 +177,7 @@ PanelWindow {
     font.family: Shell.Theme.fontFamily
     font.weight: Font.Medium
     font.pixelSize: 13
-    visible: root.listMode && opacity > 0.001
+    visible: root.itemCount > 0 && opacity > 0.001
     z: 4
 
     Behavior on hoverOpacity { Shell.HoverAnimation {} }

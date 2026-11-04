@@ -4,7 +4,7 @@ import Quickshell.Wayland
 import "." as Notifications
 import ".." as Shell
 
-// Collapsed-sidebar arrival surface. Its left edge tracks the animated
+// Notification arrival surface. Its left edge tracks the animated
 // sidebar edge, so it never temporarily overlaps and then jumps with the
 // compositor's work-area change.
 PanelWindow {
@@ -17,7 +17,6 @@ PanelWindow {
       || Notifications.State.transientOutputName === outputName
   readonly property bool requested: outputMatches
       && Notifications.State.transientVisible
-      && bar.collapseProgress > 0.42
   property real reveal: requested ? 1 : 0
   property var displayedNotification: ({})
   readonly property real cardHeight: toastCard.implicitHeight

@@ -20,7 +20,6 @@ PanelWindow {
   signal toggleRequested
   readonly property real cardWidth: Theme.lerp(Theme.sidebarCardExpandedWidth,
       Theme.sidebarCardCollapsedWidth, Theme.collapseWidth(collapseProgress))
-  readonly property real notificationCardCenterY: mainStack.y + notificationCard.y + 24
 
   readonly property real panelX: Theme.sidebarOuterMargin + cardWidth + Theme.sidebarCardGap
   readonly property bool panelOpen: wifiPanel.opened || audioPanel.opened || bluetoothPanel.opened
@@ -100,7 +99,7 @@ PanelWindow {
   Region {
     id: cardBlur
     regions: [timeCard.blurRegion, workspacesCard.blurRegion, mediaCard.blurRegion,
-      notificationCard.blurRegion, installsCard.blurRegion, controls.blurRegion,
+      installsCard.blurRegion, controls.blurRegion,
       wifiPanel.blurRegion, audioPanel.blurRegion, bluetoothPanel.blurRegion]
   }
   // Keep compositor resizes out of the card animation; only the input area shrinks.
@@ -148,7 +147,7 @@ PanelWindow {
       id: timeCard
       width: root.cardWidth
       collapseProgress: root.collapseProgress
-      onClicked: root.togglePopup("calendar")
+      onClicked: { root.dismissPanels(); Notifications.State.togglePanel(root.screen.name); }
       onBatteryClicked: root.togglePopup("battery")
     }
 
@@ -158,9 +157,9 @@ PanelWindow {
       collapseProgress: root.collapseProgress
       maximumHeight: Math.max(64,
           bottomStack.y - Theme.sidebarCardGap - mainStack.y
-          - timeCard.height - mediaCard.height - notificationCard.height - installsCard.height
+          - timeCard.height - mediaCard.height - installsCard.height
           - (keyboardFeedback.visible ? keyboardFeedback.height + Theme.sidebarCardGap : 0)
-          - Theme.sidebarCardGap * (2 + (mediaCard.visible ? 1 : 0) + (installsCard.visible ? 1 : 0)))
+          - Theme.sidebarCardGap * (1 + (mediaCard.visible ? 1 : 0) + (installsCard.visible ? 1 : 0)))
       onFocusRequested: index => NiriMsg.focusWorkspace(index)
       onWindowRequested: windowId => NiriMsg.focusWindow(windowId)
       onAddRequested: workspaceId => NiriMsg.openLauncher(workspaceId)
@@ -169,13 +168,6 @@ PanelWindow {
     Media.Player {
       id: mediaCard
       collapseProgress: root.collapseProgress
-    }
-
-    Notifications.SidebarCard {
-      id: notificationCard
-      width: root.cardWidth
-      collapseProgress: root.collapseProgress
-      onPanelRequested: { root.dismissPanels(); Notifications.State.togglePanel(root.screen.name); }
     }
 
     Installs.SidebarCard {

@@ -60,7 +60,6 @@ Singleton {
 
   onHistoryNotificationsChanged: {
     if (historyWritable) save.restart();
-    if (historyNotifications.length === 0) closePanel();
   }
   Timer {
     id: save
@@ -237,7 +236,6 @@ Singleton {
   }
 
   function togglePanel(outputName) {
-    if (notificationCount === 0) return;
     if (panelOpen && panelOutputName === outputName) { closePanel(); return; }
     transientId = "";
     panelOutputName = outputName;
@@ -272,6 +270,5 @@ Singleton {
     historyNotifications = [];
     activeNotifications = [];
     transientId = "";
-    closePanel();
   }
 }

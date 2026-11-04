@@ -4,7 +4,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import "battery" as Battery
-import "calendar" as Calendar
 import "settings" as Settings
 import "settings/appearance" as Appearance
 import "settings/system" as System
@@ -101,7 +100,6 @@ ShellRoot {
       }
       Notifications.ToastWindow { id: toast; bar: sidebar }
       Notifications.CenterWindow { bar: sidebar }
-      Calendar.Window { bar: sidebar }
       Battery.Window { bar: sidebar }
       Battery.Notification { bar: sidebar; above: toast }
       PanelDismissWindow { bar: sidebar }

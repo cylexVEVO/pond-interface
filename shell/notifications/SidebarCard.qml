@@ -121,7 +121,6 @@ Item {
   MouseArea {
     width: parent.width
     height: 48
-    enabled: !root.empty
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
     onClicked: root.panelRequested()

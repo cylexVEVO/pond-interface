@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import ".." as Shell
 import "../battery" as Battery
+import "../notifications" as Notifications
 
 Shell.Card {
   id: root
@@ -15,7 +16,9 @@ Shell.Card {
   readonly property color batteryColor: Battery.State.charging ? "#CBE25B"
       : low ? Battery.State.lowColor : Shell.Theme.sidebarForeground
   Accessible.role: Accessible.Button
-  Accessible.name: "Open calendar"
+  Accessible.name: "Open calendar and notifications"
+  Accessible.description: Notifications.State.notificationCount === 0
+      ? "No notifications" : Notifications.State.notificationCount + " notifications"
   Accessible.onPressAction: clicked()
 
   MouseArea {
@@ -41,6 +44,20 @@ Shell.Card {
   SystemClock {
     id: systemClock
     precision: SystemClock.Minutes
+  }
+
+  // A small badge marks saved notifications in either sidebar layout.
+  Rectangle {
+    x: root.collapseProgress < 0.56 ? 138 : root.width - 13
+    y: root.collapseProgress < 0.56 ? 6 : 72
+    width: 8
+    height: 8
+    radius: 4
+    color: Shell.Theme.colors.accent
+    border.width: 1
+    border.color: Shell.Theme.sidebarCardFill
+    visible: Notifications.State.notificationCount > 0
+    z: 2
   }
 
   Item {
