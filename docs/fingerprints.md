@@ -31,3 +31,27 @@ Hardware smoke test: enroll a finger, refresh the list, test both matching and
 nonmatching fingers, cancel enrollment, lock and unlock with a fingerprint, cancel
 a lock-screen scan and unlock with a password, and test SDDM login. Also verify
 password fallback with the reader disconnected and fprintd unavailable.
+
+## Automatic setup
+
+The Fingerprints page checks dependencies and PAM configuration on opening. On
+Ubuntu, Debian, Arch Linux, and Fedora, **Set up fingerprint login** installs the
+required distribution packages and configures Pond and an existing SDDM PAM
+service. The system's polkit agent requests administrator authentication. Install
+Pond with its CMake install target first: this installs the fixed-purpose helper
+at `/usr/libexec/pond-fingerprint-setup`. An absent helper or pkexec disables setup.
+No privileged commands are run on merely opening the page.
+
+Setup keeps the original PAM files as `/etc/pam.d/*.pond-backup`, writes files
+atomically, and preserves existing password, account, and session rules. It
+refuses custom fingerprint configurations it cannot safely recognize. Package
+installation failures leave PAM unchanged; retry setup after resolving the error.
+Unsupported distributions need the manual setup above. Reader availability and
+enrolled prints are checked using Refresh/Test after setup; successful software
+setup does not imply compatible hardware. Do not close the shell during package
+installation. To undo PAM changes, an administrator can restore the backups (or
+remove the dedicated Pond PAM file if it had no predecessor).
+
+Package references: [Ubuntu](https://packages.ubuntu.com/search?keywords=libpam-fprintd),
+[Arch Linux](https://archlinux.org/packages/extra/x86_64/fprintd/),
+[Fedora](https://packages.fedoraproject.org/pkgs/fprintd/fprintd-pam/index.html).
