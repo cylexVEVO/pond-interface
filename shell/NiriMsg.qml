@@ -82,7 +82,7 @@ Singleton {
       workspaceLauncherCloseTimer.stop();
       _workspaceLauncherOpen = false;
       _workspaceLauncherStateKnown = true;
-      _queueLauncherCommand("vicinae://close?workspace=true");
+      _queueLauncherCommand("vicinae://close?workspace=true&fade=instant");
       return;
     }
     // Don't restart — later niri events would otherwise keep postponing the close.

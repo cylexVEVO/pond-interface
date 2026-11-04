@@ -93,7 +93,7 @@ for (const events of [
     f.event(workspaceSnapshot());
     f.event(windowsSnapshot);
     assert.equal(f.requests.length, 1);
-    assert.equal(f.requests[0], "vicinae://close?workspace=true");
+    assert.equal(f.requests[0], "vicinae://close?workspace=true&fade=instant");
     assert.equal(f.context._workspaceLauncherAllowed, false);
   });
 }
@@ -141,4 +141,15 @@ test("occupied destinations still close after the transition without postponemen
   assert.equal(f.context.workspaceLauncherCloseTimer.starts, starts);
   f.expireClose();
   assert.equal(f.requests.at(-1), "vicinae://close?workspace=true");
+});
+
+test("overview and drag dismissal bypass the long workspace fade", () => {
+  for (const drag of [false, true]) {
+    const f = fixture();
+    f.event(workspaceSnapshot());
+    f.open(1);
+    if (drag) f.context.dragOrigin = {};
+    f.event({ OverviewOpenedOrClosed: { is_open: !drag } });
+    assert.equal(f.requests.at(-1), "vicinae://close?workspace=true&fade=instant");
+  }
 });
