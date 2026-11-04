@@ -4,10 +4,13 @@ Install fprintd, its command-line tools, and your distribution's pam_fprintd
 package. A supported libfprint reader is required. The daemon normally activates
 on D-Bus demand. Keep the distribution's default fprintd PolicyKit policy.
 
-Install config/pam.d/pond-fingerprint as root-owned /etc/pam.d/pond-fingerprint
-(mode 0644); the CMake install target includes it. The lock screen's fingerprint
-button uses this dedicated PAM service. Password authentication continues to use
-the existing PAM service. Scans time out after 30 seconds and can be cancelled.
+The lock screen ships auth-only PAM services beside the session UI
+(`lockscreen/session/pam.d/pond-password` and `pond-fingerprint`) and loads them
+through Quickshell's `configDirectory` override. Password unlock never uses the
+system `login`/`common-auth` stack, which often gains a fingerprint rule after
+`libpam-fprintd` is installed and would wait for a finger after you type your
+password. CMake still installs copies under `/etc/pam.d` for administrators.
+Scans time out after 30 seconds and can be cancelled.
 
 For SDDM login, use your distribution's supported PAM configuration mechanism to
 add `auth sufficient pam_fprintd.so max-tries=3 timeout=30` before password
@@ -59,15 +62,11 @@ Package references: [Ubuntu](https://packages.ubuntu.com/search?keywords=libpam-
 
 ## Independent lock-screen authentication
 
-Fingerprint scanning starts when the lock screen opens. The password field stays
-usable. Submitting a password stops the scan; a reader timeout leaves password
-unlock available, and the fingerprint button starts another scan.
+Fingerprint scanning starts when the lock screen opens and retries after
+timeouts or mismatches. The password field stays usable. Submitting a password
+stops the scan; cancelling or failing a scan arms another one.
 
-Run **Set up fingerprint login** once after updating to install the new
-`/etc/pam.d/pond-password` service. Password unlock uses this local Unix-password
-service instead of the system login stack, so a system-wide fingerprint rule
-cannot turn password unlock into a second scan. Existing custom
-`POND_PAM_SERVICE` overrides are respected; administrators using directory
-accounts or custom authentication policies must supply an appropriate service.
-The dedicated service supports local Unix accounts. This change affects the
-session lock screen; SDDM continues to use its own PAM conversation.
+Password and fingerprint each use their own PamContext and auth-only policy
+file, matching Quickshell's PAM guidance. Custom `POND_PAM_SERVICE` overrides
+still load from `/etc/pam.d` for directory accounts or site policy. SDDM keeps
+its own PAM conversation; setup only inserts a sufficient fingerprint line there.

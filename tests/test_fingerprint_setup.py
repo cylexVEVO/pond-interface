@@ -85,10 +85,28 @@ class SetupTests(unittest.TestCase):
             self.assertIn('pkexec is missing', result['blocker'])
 
     def test_password_service_is_separate_from_fingerprint(self):
-        self.assertIn('auth required pam_unix.so', setup.PASSWORD)
+        self.assertEqual(setup.PASSWORD, 'auth required pam_unix.so\n')
         self.assertNotIn('pam_fprintd', setup.PASSWORD)
         self.assertNotIn('include', setup.PASSWORD)
-        self.assertIn('auth required pam_fprintd.so', setup.LOCK)
-        self.assertNotIn('auth required pam_unix.so', setup.LOCK)
+        self.assertNotIn('account', setup.PASSWORD)
+        self.assertEqual(setup.LOCK, 'auth required pam_fprintd.so max-tries=3 timeout=30\n')
+        self.assertNotIn('pam_unix.so', setup.LOCK)
+        self.assertNotIn('account', setup.LOCK)
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / 'config/pam.d/pond-password').read_text(), setup.PASSWORD)
+        for relative in (
+            'config/pam.d/pond-password',
+            'config/pam.d/pond-fingerprint',
+            'lockscreen/session/pam.d/pond-password',
+            'lockscreen/session/pam.d/pond-fingerprint',
+        ):
+            path = root / relative
+            expected = setup.PASSWORD if path.name == 'pond-password' else setup.LOCK
+            self.assertEqual(path.read_text(), expected, relative)
+
+    def test_status_does_not_require_etc_lock_pam_mirrors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
+                result = setup.status()
+            self.assertNotIn('lock screen configuration', result['missing'])
+            self.assertNotIn('password unlock configuration', result['missing'])
+            self.assertTrue(result['ready'])

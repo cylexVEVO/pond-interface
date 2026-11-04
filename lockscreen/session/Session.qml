@@ -66,8 +66,12 @@ Item {
                 text: fingerprintAuth.authenticationPending ? "Touch the fingerprint reader · Cancel" : "Unlock with fingerprint"
                 enabled: flow.phase === "editing"
                 onClicked: {
-                    if (fingerprintAuth.authenticationPending) fingerprintAuth.reset();
-                    else flow.attemptFingerprint();
+                    if (fingerprintAuth.authenticationPending) {
+                        fingerprintAuth.reset();
+                        flow.armFingerprintScan();
+                    } else {
+                        flow.attemptFingerprint();
+                    }
                 }
             }
 

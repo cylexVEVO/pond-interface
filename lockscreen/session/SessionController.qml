@@ -16,31 +16,54 @@ Item {
     function attemptUnlock(credential) {
         if (phase !== "editing")
             return;
-        if (fingerprintAuthentication) fingerprintAuthentication.reset();
-        authentication.fingerprintMode = false;
+        // Stop the fingerprint conversation before password PAM starts so the
+        // reader is not held open during password verification.
+        if (fingerprintAuthentication)
+            fingerprintAuthentication.reset();
+        fingerprintScan.stop();
         phase = "authenticating";
         if (!authentication.authenticate(credential))
             reject();
     }
 
     function attemptFingerprint() {
-        if (phase !== "editing" || !fingerprintAuthentication || !fingerprintAuthentication.pamReady) return;
-        fingerprintAuthentication.authenticateFingerprint();
+        if (phase !== "editing" || !fingerprintAuthentication || !fingerprintAuthentication.pamReady)
+            return;
+        if (fingerprintAuthentication.authenticationPending)
+            return;
+        // Abort can leave the backend busy for a tick; retry instead of giving up.
+        if (!fingerprintAuthentication.authenticateFingerprint())
+            fingerprintScan.restart();
+    }
+
+    function armFingerprintScan() {
+        if (phase !== "editing" || !fingerprintAuthentication || !fingerprintAuthentication.pamReady)
+            return;
+        if (fingerprintAuthentication.authenticationPending)
+            return;
+        fingerprintScan.restart();
     }
 
     // Fingerprint scans run while the password field remains editable.
     Timer {
-        interval: 100
-        running: root.phase === "editing" && root.fingerprintAuthentication !== null
-            && root.fingerprintAuthentication.pamReady
+        id: fingerprintScan
+        interval: 150
         onTriggered: root.attemptFingerprint()
     }
 
+    onPhaseChanged: {
+        if (phase === "editing")
+            root.armFingerprintScan();
+    }
+
     function approve() {
-        if (phase !== "editing" && phase !== "authenticating") return;
+        if (phase !== "editing" && phase !== "authenticating")
+            return;
         phase = "approving";
+        fingerprintScan.stop();
         authentication.reset();
-        if (fingerprintAuthentication) fingerprintAuthentication.reset();
+        if (fingerprintAuthentication)
+            fingerprintAuthentication.reset();
         authentication.pamReady = false;
         transitionFailed = false;
         frontend.authenticationSucceeded();
@@ -77,11 +100,13 @@ Item {
         phase = "finished";
         successDeadline.stop();
         handoffDeadline.stop();
+        fingerprintScan.stop();
         transition.active = false;
         frontend.active = false;
         frontend.currentText = "";
         authentication.reset();
-        if (fingerprintAuthentication) fingerprintAuthentication.reset();
+        if (fingerprintAuthentication)
+            fingerprintAuthentication.reset();
         if (needsRelease)
             releaseRequested();
         finished();
@@ -117,11 +142,25 @@ Item {
     }
     Connections {
         target: root.fingerprintAuthentication
-        function onSucceeded() {
-            if (root.phase === "editing") root.approve();
+        function onPamReadyChanged() {
+            if (root.fingerprintAuthentication && root.fingerprintAuthentication.pamReady)
+                root.armFingerprintScan();
         }
-        // Reader timeouts and missing prints must not reject a typed password.
-        function onAuthenticationError(message) { console.warn(message); }
+        function onSucceeded() {
+            if (root.phase === "editing")
+                root.approve();
+        }
+        function onRejected(result) {
+            // Timeouts and mismatches leave password unlock available; retry scan.
+            if (root.phase === "editing")
+                root.armFingerprintScan();
+        }
+        // Missing module or abrupt abort must not reject a typed password.
+        function onAuthenticationError(message) {
+            console.warn(message);
+            if (root.phase === "editing")
+                root.armFingerprintScan();
+        }
     }
     Connections {
         target: root.transition

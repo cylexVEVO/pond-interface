@@ -10,8 +10,9 @@ import sys
 import tempfile
 
 PAM = Path('/etc/pam.d')
-LOCK = 'auth required pam_fprintd.so max-tries=3 timeout=30\naccount required pam_unix.so\n'
-PASSWORD = 'auth required pam_unix.so\naccount required pam_unix.so\n'
+# Auth-only: Quickshell PamContext does not run account/session rules.
+LOCK = 'auth required pam_fprintd.so max-tries=3 timeout=30\n'
+PASSWORD = 'auth required pam_unix.so\n'
 LOGIN = 'auth sufficient pam_fprintd.so max-tries=3 timeout=30\n'
 
 
@@ -61,10 +62,7 @@ def status():
     if not any(list(Path(base).glob(pattern)) for base in ('/usr/lib', '/usr/lib64', '/lib', '/lib64')
                for pattern in ('security/pam_fprintd.so', '*/security/pam_fprintd.so')):
         missing.append('PAM fingerprint module')
-    if read(PAM / 'pond-fingerprint') != LOCK:
-        missing.append('lock screen configuration')
-    if read(PAM / 'pond-password') != PASSWORD:
-        missing.append('password unlock configuration')
+    # Lock-screen PAM ships with the session UI; /etc copies stay optional mirrors.
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
