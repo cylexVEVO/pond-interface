@@ -11,6 +11,7 @@ import tempfile
 
 PAM = Path('/etc/pam.d')
 LOCK = 'auth required pam_fprintd.so max-tries=3 timeout=30\naccount required pam_unix.so\n'
+PASSWORD = 'auth required pam_unix.so\naccount required pam_unix.so\n'
 LOGIN = 'auth sufficient pam_fprintd.so max-tries=3 timeout=30\n'
 
 
@@ -62,6 +63,8 @@ def status():
         missing.append('PAM fingerprint module')
     if read(PAM / 'pond-fingerprint') != LOCK:
         missing.append('lock screen configuration')
+    if read(PAM / 'pond-password') != PASSWORD:
+        missing.append('password unlock configuration')
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
@@ -107,11 +110,12 @@ def setup():
     command = packages()
     if not command:
         raise ValueError('Automatic setup is not supported on this distribution.')
+    old_password = read(PAM / 'pond-password')
     old_lock = read(PAM / 'pond-fingerprint')
     old_login = read(PAM / 'sddm')
     new_login = old_login if not old_login or LOGIN in old_login.splitlines(keepends=True) else login_config(old_login)
     # Validate all files before package installation or PAM changes.
-    for name, old in (('pond-fingerprint', old_lock), ('sddm', old_login)):
+    for name, old in (('pond-fingerprint', old_lock), ('pond-password', old_password), ('sddm', old_login)):
         backup = PAM / (name + '.pond-backup')
         if old and not backup.exists():
             read(backup)
@@ -120,8 +124,9 @@ def setup():
     print('Installing fingerprint support…', flush=True)
     subprocess.run(command, check=True, env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'DEBIAN_FRONTEND': 'noninteractive', 'LC_ALL': 'C'})
     # A package manager may have modified PAM; never overwrite those changes.
-    if read(PAM / 'sddm') != old_login or read(PAM / 'pond-fingerprint') != old_lock:
+    if read(PAM / 'sddm') != old_login or read(PAM / 'pond-fingerprint') != old_lock or read(PAM / 'pond-password') != old_password:
         raise RuntimeError('PAM changed during installation. Run setup again to recheck it.')
+    atomic_write(PAM / 'pond-password', PASSWORD)
     atomic_write(PAM / 'pond-fingerprint', LOCK)
     if new_login != old_login:
         atomic_write(PAM / 'sddm', new_login)

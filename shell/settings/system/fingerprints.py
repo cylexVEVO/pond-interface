@@ -23,6 +23,15 @@ def command(args):
 
 
 MESSAGES = {
+    'verify-match': ('complete', 'Fingerprint recognized.'),
+    'verify-no-match': ('failed', 'Fingerprint not recognized. Try again.'),
+    'verify-retry-scan': ('retry', 'Couldn’t read that scan. Try again.'),
+    'verify-remove-and-retry': ('retry', 'Lift your finger, then try again.'),
+    'verify-finger-not-centered': ('retry', 'Move your finger to the center of the reader.'),
+    'verify-swipe-too-short': ('retry', 'Swipe across the whole reader.'),
+    'verify-too-fast': ('retry', 'Hold your finger on the reader a little longer.'),
+    'verify-disconnected': ('failed', 'Reader disconnected. Reconnect it and try again.'),
+    'verify-unknown-error': ('failed', 'The reader stopped responding. Try again.'),
     'enroll-stage-passed': ('accepted', 'Scan accepted. Lift your finger and touch again.'),
     'enroll-retry-scan': ('retry', 'Couldn’t read that scan. Try again.'),
     'enroll-swipe-too-short': ('retry', 'Swipe across the whole reader.'),
@@ -39,12 +48,27 @@ MESSAGES = {
 
 
 def feedback(line):
-    match = re.search(r'\b(enroll-[a-z-]+)\b', line)
+    match = re.search(r'\b((?:enroll|verify)-[a-z-]+)\b', line)
     if not match:
         return {'kind': 'log', 'message': line}
     status = match.group(1)
     kind, message = MESSAGES.get(status, ('failed', 'The reader reported an unexpected result. Try again.'))
     return {'kind': kind, 'message': message, 'status': status}
+
+
+def saved_fingers(text):
+    # fprintd-list emits numbered entries; don't mistake device/user metadata
+    # for an enrolled print. Combine duplicate entries from multiple readers.
+    return list(dict.fromkeys(re.findall(
+        r'^\s*-\s*#\d+:\s*(' + '|'.join(FINGERS) + r')\s*$', text, re.MULTILINE)))
+
+
+def list_fingers(argv):
+    result = subprocess.run(argv, capture_output=True, text=True,
+                            env=dict(os.environ, LC_ALL='C'), timeout=20)
+    print(json.dumps({'fingers': saved_fingers(result.stdout),
+                      'error': (result.stderr or result.stdout).strip() if result.returncode else ''}), flush=True)
+    return result.returncode
 
 
 def enroll(argv):
@@ -95,7 +119,9 @@ def enroll(argv):
 if __name__ == '__main__':
     try:
         argv = command(sys.argv[1:])
-        if sys.argv[1] == 'enroll':
+        if sys.argv[1] == 'list':
+            sys.exit(list_fingers(argv))
+        if sys.argv[1] in ('enroll', 'verify'):
             sys.exit(enroll(argv))
         os.execvpe(argv[0], argv, dict(os.environ, LC_ALL='C'))
     except (OSError, ValueError) as error:

@@ -61,3 +61,20 @@ class EnrollmentFeedback(unittest.TestCase):
             process.terminate()
             process.wait(timeout=5)
             process.stdout.close()
+
+class SavedFingerList(unittest.TestCase):
+    def test_parses_only_numbered_fingers_and_deduplicates(self):
+        output = '''found 2 devices
+Fingerprints for user right-thumb on Reader:
+ - #0: right-index-finger
+ - #1: left-thumb
+ - #0: right-index-finger
+'''
+        self.assertEqual(module.saved_fingers(output), ['right-index-finger', 'left-thumb'])
+
+    def test_empty_inventory(self):
+        self.assertEqual(module.saved_fingers('User has no fingers enrolled'), [])
+
+    def test_verification_feedback(self):
+        self.assertEqual(module.feedback('Verify result: verify-match')['kind'], 'complete')
+        self.assertEqual(module.feedback('Verify result: verify-no-match')['kind'], 'failed')

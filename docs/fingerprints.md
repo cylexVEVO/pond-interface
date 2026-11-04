@@ -56,3 +56,18 @@ remove the dedicated Pond PAM file if it had no predecessor).
 Package references: [Ubuntu](https://packages.ubuntu.com/search?keywords=libpam-fprintd),
 [Arch Linux](https://archlinux.org/packages/extra/x86_64/fprintd/),
 [Fedora](https://packages.fedoraproject.org/pkgs/fprintd/fprintd-pam/index.html).
+
+## Independent lock-screen authentication
+
+Fingerprint scanning starts when the lock screen opens. The password field stays
+usable. Submitting a password stops the scan; a reader timeout leaves password
+unlock available, and the fingerprint button starts another scan.
+
+Run **Set up fingerprint login** once after updating to install the new
+`/etc/pam.d/pond-password` service. Password unlock uses this local Unix-password
+service instead of the system login stack, so a system-wide fingerprint rule
+cannot turn password unlock into a second scan. Existing custom
+`POND_PAM_SERVICE` overrides are respected; administrators using directory
+accounts or custom authentication policies must supply an appropriate service.
+The dedicated service supports local Unix accounts. This change affects the
+session lock screen; SDDM continues to use its own PAM conversation.

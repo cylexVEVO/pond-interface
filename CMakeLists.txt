@@ -13,6 +13,6 @@ target_include_directories(pond_system PRIVATE lockscreen/frontend/system)
 target_link_libraries(pond_system PRIVATE KF6::NetworkManagerQt Qt6::DBus Qt6::Gui wayland-client)
 set_target_properties(pond_systemplugin PROPERTIES INSTALL_RPATH "$ORIGIN")
 
-install(FILES config/pam.d/pond-fingerprint DESTINATION /etc/pam.d)
+install(FILES config/pam.d/pond-fingerprint config/pam.d/pond-password DESTINATION /etc/pam.d)
 install(PROGRAMS shell/settings/system/fingerprint_setup.py
     DESTINATION /usr/libexec RENAME pond-fingerprint-setup)

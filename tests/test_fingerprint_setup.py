@@ -34,6 +34,7 @@ class SetupTests(unittest.TestCase):
             self.assertEqual((pam / 'sddm.pond-backup').read_text(), original)
             self.assertEqual((pam / 'sddm').read_text().count(setup.LOGIN), 1)
             self.assertEqual((pam / 'pond-fingerprint').read_text(), setup.LOCK)
+            self.assertEqual((pam / 'pond-password').read_text(), setup.PASSWORD)
 
     def test_package_failure_does_not_change_pam(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -82,3 +83,12 @@ class SetupTests(unittest.TestCase):
             self.assertFalse(result['canSetup'])
             self.assertIn('/usr/bin/pacman', result['blocker'])
             self.assertIn('pkexec is missing', result['blocker'])
+
+    def test_password_service_is_separate_from_fingerprint(self):
+        self.assertIn('auth required pam_unix.so', setup.PASSWORD)
+        self.assertNotIn('pam_fprintd', setup.PASSWORD)
+        self.assertNotIn('include', setup.PASSWORD)
+        self.assertIn('auth required pam_fprintd.so', setup.LOCK)
+        self.assertNotIn('auth required pam_unix.so', setup.LOCK)
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual((root / 'config/pam.d/pond-password').read_text(), setup.PASSWORD)

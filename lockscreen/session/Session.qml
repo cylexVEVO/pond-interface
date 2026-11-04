@@ -23,6 +23,7 @@ Item {
     }
 
     Authentication { id: auth }
+    Authentication { id: fingerprintAuth; fingerprintOnly: true }
     Session.Transition {
         id: handoff
         controller: ui.controller
@@ -41,6 +42,7 @@ Item {
         id: flow
         frontend: ui
         authentication: auth
+        fingerprintAuthentication: fingerprintAuth
         transition: handoff
         onReleaseRequested: lockSession.locked = false
         onFinished: root.finished()
@@ -60,11 +62,11 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 32
-                visible: surface.showPresentation
-                text: auth.authenticationPending && auth.fingerprintMode ? "Cancel fingerprint scan" : "Unlock with fingerprint"
-                enabled: flow.phase === "editing" || (flow.phase === "authenticating" && auth.fingerprintMode)
+                visible: surface.showPresentation && fingerprintAuth.pamReady
+                text: fingerprintAuth.authenticationPending ? "Touch the fingerprint reader · Cancel" : "Unlock with fingerprint"
+                enabled: flow.phase === "editing"
                 onClicked: {
-                    if (auth.authenticationPending) { auth.reset(); flow.reject(); }
+                    if (fingerprintAuth.authenticationPending) fingerprintAuth.reset();
                     else flow.attemptFingerprint();
                 }
             }

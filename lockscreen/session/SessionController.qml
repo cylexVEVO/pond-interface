@@ -3,6 +3,7 @@ import QtQuick
 Item {
     id: root
 
+    property var fingerprintAuthentication: null
     required property var authentication
     required property var transition
     required property var frontend
@@ -15,6 +16,7 @@ Item {
     function attemptUnlock(credential) {
         if (phase !== "editing")
             return;
+        if (fingerprintAuthentication) fingerprintAuthentication.reset();
         authentication.fingerprintMode = false;
         phase = "authenticating";
         if (!authentication.authenticate(credential))
@@ -22,9 +24,28 @@ Item {
     }
 
     function attemptFingerprint() {
-        if (phase !== "editing") return;
-        phase = "authenticating";
-        if (!authentication.authenticateFingerprint()) reject();
+        if (phase !== "editing" || !fingerprintAuthentication || !fingerprintAuthentication.pamReady) return;
+        fingerprintAuthentication.authenticateFingerprint();
+    }
+
+    // Fingerprint scans run while the password field remains editable.
+    Timer {
+        interval: 100
+        running: root.phase === "editing" && root.fingerprintAuthentication !== null
+            && root.fingerprintAuthentication.pamReady
+        onTriggered: root.attemptFingerprint()
+    }
+
+    function approve() {
+        if (phase !== "editing" && phase !== "authenticating") return;
+        phase = "approving";
+        authentication.reset();
+        if (fingerprintAuthentication) fingerprintAuthentication.reset();
+        authentication.pamReady = false;
+        transitionFailed = false;
+        frontend.authenticationSucceeded();
+        successDeadline.restart();
+        transition.active = true;
     }
 
     function reject() {
@@ -60,6 +81,7 @@ Item {
         frontend.active = false;
         frontend.currentText = "";
         authentication.reset();
+        if (fingerprintAuthentication) fingerprintAuthentication.reset();
         if (needsRelease)
             releaseRequested();
         finished();
@@ -85,18 +107,21 @@ Item {
         function onSucceeded() {
             if (root.phase !== "authenticating")
                 return;
-            root.phase = "approving";
-            root.authentication.pamReady = false;
-            root.transitionFailed = false;
-            root.frontend.authenticationSucceeded();
-            successDeadline.restart();
-            root.transition.active = true;
+            root.approve();
         }
         function onRejected(result) { root.reject(); }
         function onAuthenticationError(message) {
             console.warn(message);
             root.reject();
         }
+    }
+    Connections {
+        target: root.fingerprintAuthentication
+        function onSucceeded() {
+            if (root.phase === "editing") root.approve();
+        }
+        // Reader timeouts and missing prints must not reject a typed password.
+        function onAuthenticationError(message) { console.warn(message); }
     }
     Connections {
         target: root.transition

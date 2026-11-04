@@ -6,6 +6,7 @@ import Quickshell.Services.Pam
 AuthSession {
     id: root
 
+    property bool fingerprintOnly: false
     property bool fingerprintMode: false
     function authenticateFingerprint() {
         if (authenticationPending) return false;
@@ -25,7 +26,7 @@ AuthSession {
     Component.onCompleted: {
         if (!probePamService)
             return;
-        if (Quickshell.env("POND_PAM_SERVICE")) {
+        if (!fingerprintOnly && Quickshell.env("POND_PAM_SERVICE")) {
             pamReady = true;
         } else {
             detectPamServiceProc.running = true;
@@ -34,7 +35,7 @@ AuthSession {
 
     Process {
         id: detectPamServiceProc
-        command: ["sh", "-c", "if [ -f /etc/pam.d/login ]; then printf '%s\\n' login; elif [ -f /etc/pam.d/system-auth ]; then printf '%s\\n' system-auth; elif [ -f /etc/pam.d/common-auth ]; then printf '%s\\n' common-auth; else exit 1; fi"]
+        command: root.fingerprintOnly ? ["sh", "-c", "test -f /etc/pam.d/pond-fingerprint && printf pond-fingerprint"] : ["sh", "-c", "if [ -f /etc/pam.d/pond-password ]; then printf '%s\\n' pond-password; elif [ -f /etc/pam.d/login ]; then printf '%s\\n' login; elif [ -f /etc/pam.d/system-auth ]; then printf '%s\\n' system-auth; elif [ -f /etc/pam.d/common-auth ]; then printf '%s\\n' common-auth; else exit 1; fi"]
 
         stdout: StdioCollector {
             onStreamFinished: {
