@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 
-HELPER = '/usr/libexec/pond-fingerprint-setup'
 PAM = Path('/etc/pam.d')
 LOCK = 'auth required pam_fprintd.so max-tries=3 timeout=30\naccount required pam_unix.so\n'
 LOGIN = 'auth sufficient pam_fprintd.so max-tries=3 timeout=30\n'
@@ -49,19 +48,27 @@ def status():
     missing = []
     if not all(shutil.which('fprintd-' + name) for name in ('list', 'enroll', 'delete', 'verify')):
         missing.append('fprintd tools')
-    if not list(Path('/usr/lib').glob('**/security/pam_fprintd.so')) and not list(Path('/lib').glob('*/security/pam_fprintd.so')):
+    if not any(list(Path(base).glob(pattern)) for base in ('/usr/lib', '/usr/lib64', '/lib', '/lib64')
+               for pattern in ('security/pam_fprintd.so', '*/security/pam_fprintd.so')):
         missing.append('PAM fingerprint module')
     if read(PAM / 'pond-fingerprint') != LOCK:
         missing.append('lock screen configuration')
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
-    blocker = ('Reinstall Pond to enable setup.' if not Path(HELPER).is_file()
-               else 'Install polkit to enable setup.' if not shutil.which('pkexec')
+    blocker = ('Install polkit to enable setup.' if not shutil.which('pkexec')
                else 'Automatic setup isn’t available on this system.' if not packages() else '')
     return {'ready': not missing, 'missing': missing, 'blocker': blocker,
-            'canSetup': bool(packages() and shutil.which('pkexec') and Path(HELPER).is_file()),
+            'canSetup': bool(packages() and shutil.which('pkexec')),
             'sddm': bool(sddm)}
+
+
+def launch_command():
+    # Use the helper shipped beside the running shell, including source checkouts.
+    # pkexec still requires full administrator authorization; no permissive policy
+    # or persistent elevation is installed. Isolated Python ignores user imports.
+    return ['/usr/bin/pkexec', '/usr/bin/python3', '-I', '-u',
+            str(Path(__file__).resolve()), 'setup']
 
 
 def atomic_write(path, text):
@@ -109,10 +116,13 @@ if __name__ == '__main__':
     try:
         if sys.argv[1:] == ['status']:
             print(json.dumps(status()))
+        elif sys.argv[1:] == ['launch']:
+            command = launch_command()
+            os.execv(command[0], command)
         elif sys.argv[1:] == ['setup']:
             setup()
         else:
-            raise ValueError('Expected status or setup')
+            raise ValueError('Expected status, launch or setup')
     except Exception as error:
         print(str(error), file=sys.stderr, flush=True)
         sys.exit(1)

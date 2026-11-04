@@ -37,9 +37,10 @@ password fallback with the reader disconnected and fprintd unavailable.
 The Fingerprints page checks dependencies and PAM configuration on opening. On
 Ubuntu, Debian, Arch Linux, and Fedora, **Set up fingerprint login** installs the
 required distribution packages and configures Pond and an existing SDDM PAM
-service. The system's polkit agent requests administrator authentication. Install
-Pond with its CMake install target first: this installs the fixed-purpose helper
-at `/usr/libexec/pond-fingerprint-setup`. An absent helper or pkexec disables setup.
+service. The system's polkit agent requests administrator authentication. Setup runs the helper bundled with the current shell through `pkexec`, so it
+also works from a source checkout. No reinstall or separate helper installation
+is needed. Python runs in isolated mode with administrator authentication; no
+passwordless policy is installed. An absent pkexec disables setup.
 No privileged commands are run on merely opening the page.
 
 Setup keeps the original PAM files as `/etc/pam.d/*.pond-backup`, writes files

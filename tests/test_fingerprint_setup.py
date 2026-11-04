@@ -45,3 +45,16 @@ class SetupTests(unittest.TestCase):
                     setup.setup()
             self.assertEqual((pam / 'sddm').read_text(), original)
             self.assertFalse((pam / 'pond-fingerprint').exists())
+
+    def test_launch_uses_bundled_script_with_isolated_python(self):
+        self.assertEqual(setup.launch_command(), [
+            '/usr/bin/pkexec', '/usr/bin/python3', '-I', '-u',
+            str(Path(setup.__file__).resolve()), 'setup'])
+
+    def test_setup_available_without_installed_helper(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'):
+                result = setup.status()
+            self.assertTrue(result['canSetup'])
+            self.assertFalse(result['ready'])
+            self.assertEqual(result['blocker'], '')

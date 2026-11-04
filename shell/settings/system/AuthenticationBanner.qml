@@ -4,6 +4,7 @@ import "../.." as Shell
 
 Rectangle {
   id: root
+  visible: !Authentication.State.registered
   implicitHeight: body.height + 32
   radius: Shell.PanelStyle.radius
   color: Shell.Theme.colors.settingsRow

@@ -67,12 +67,16 @@ Settings.Modal {
     }
     Process {
         id: installer
-        command: ["pkexec", "/usr/libexec/pond-fingerprint-setup", "setup"]
+        command: ["python3", Quickshell.shellDir + "/settings/system/fingerprint_setup.py", "launch"]
         stdout: SplitParser { onRead: data => root.output += data + "\n" }
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
         onExited: (code, status) => {
             root.settingUp = false;
-            root.notice = code === 0 ? "Ready to add a fingerprint." : "Setup didn’t finish. Try again.";
+            root.notice = code === 0 ? "Ready to add a fingerprint."
+                : code === 126 ? "Setup cancelled."
+                : code === 127 ? "Couldn’t get administrator access."
+                : "Setup didn’t finish.";
+            if (code !== 0 && code !== 126) root.detailsOpen = true;
             probe.running = true;
         }
     }
