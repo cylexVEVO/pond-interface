@@ -17,6 +17,9 @@ Singleton {
   property var _windows: ({})
   property var _appInfoCache: ({})
   property ListModel workspaceRows: ListModel {}
+  // Keep the under-windows launcher up through the workspace-switch spring so
+  // arriving apps cover it instead of it vanishing from the top layer mid-slide.
+  readonly property int workspaceLauncherCloseDelayMs: 350
   readonly property string focusedOutputName: {
     for (const workspace of workspaces) {
       if (workspace.isFocused)
@@ -31,14 +34,56 @@ Singleton {
   function focusWorkspace(index) {
     if (index === undefined || index < 0)
       return;
+    // Pre-open under windows when the destination is empty so the switch
+    // reveals the launcher instead of popping it on after the slide starts.
+    const target = workspaces.find(w => w.idx === index
+        && (w.output === focusedOutputName || focusedOutputName === ""));
+    if (target && !dragOrigin && !overviewOpen
+        && !Object.values(_windows).some(w => w.workspaceId === target.id))
+      _openWorkspaceLauncher();
     Quickshell.execDetached(["niri", "msg", "action", "focus-workspace", String(index)]);
+  }
+
+  // Bottom layer: already underneath windows so the active workspace can slide
+  // away and reveal it (or slide in and hide it). Normal Mod+Space stays on top.
+  function _openWorkspaceLauncher() {
+    _workspaceLauncherOpen = true;
+    workspaceLauncherCloseTimer.stop();
+    Quickshell.execDetached(["vicinae", "vicinae://open?layer=bottom"]);
+  }
+
+  function _closeWorkspaceLauncher(immediate) {
+    if (!_workspaceLauncherOpen && !workspaceLauncherCloseTimer.running)
+      return;
+    if (immediate) {
+      workspaceLauncherCloseTimer.stop();
+      _workspaceLauncherOpen = false;
+      Quickshell.execDetached(["vicinae", "close"]);
+      return;
+    }
+    // Don't restart — later niri events would otherwise keep postponing the close.
+    if (!workspaceLauncherCloseTimer.running)
+      workspaceLauncherCloseTimer.start();
+  }
+
+  Timer {
+    id: workspaceLauncherCloseTimer
+    interval: root.workspaceLauncherCloseDelayMs
+    onTriggered: {
+      if (!root._workspaceLauncherOpen)
+        return;
+      root._workspaceLauncherOpen = false;
+      Quickshell.execDetached(["vicinae", "close"]);
+    }
   }
 
   function openLauncher(workspaceId) {
     const workspace = workspaces.find(workspace => workspace.id === workspaceId);
     if (!workspace) return;
+    // Open under windows before (or while) focusing so the switch reveals it.
+    _openWorkspaceLauncher();
     _move(workspace.isFocused ? [] : [{ FocusWorkspace: { reference: { Id: workspaceId } } }], success => {
-      if (success) Quickshell.execDetached(["vicinae", "open"]);
+      if (!success) root._closeWorkspaceLauncher(true);
     });
   }
 
@@ -246,8 +291,7 @@ Singleton {
       }));
       if (a.focused && target && !target.isFocused && !dragOrigin && !overviewOpen
           && !Object.values(_windows).some(w => w.workspaceId === a.id)) {
-        _workspaceLauncherOpen = true;
-        Quickshell.execDetached(["vicinae", "open"]);
+        _openWorkspaceLauncher();
       }
     } else if (ev.WorkspaceActiveWindowChanged) {
       const a = ev.WorkspaceActiveWindowChanged;
@@ -295,8 +339,13 @@ Singleton {
     const focusedWorkspace = workspaces.find(w => w.isFocused);
     if (_workspaceLauncherOpen && (overviewOpen || (focusedWorkspace
         && Object.values(_windows).some(w => w.workspaceId === focusedWorkspace.id)))) {
-      _workspaceLauncherOpen = false;
-      Quickshell.execDetached(["vicinae", "close"]);
+      // Overview: dismiss immediately. Occupied workspace: delay so windows can
+      // slide over the bottom-layer launcher before it closes underneath them.
+      _closeWorkspaceLauncher(overviewOpen);
+    } else if (_workspaceLauncherOpen && focusedWorkspace
+        && !Object.values(_windows).some(w => w.workspaceId === focusedWorkspace.id)) {
+      // Switched back to an empty workspace while a close was pending.
+      workspaceLauncherCloseTimer.stop();
     }
     _recompute();
   }
