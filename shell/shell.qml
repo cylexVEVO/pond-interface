@@ -78,6 +78,13 @@ ShellRoot {
   }
 
   IpcHandler {
+    target: "notifications"
+    function toggle() {
+      Notifications.State.togglePanel(Settings.State.focusedOutputName());
+    }
+  }
+
+  IpcHandler {
     target: "manual"
     function open() { Settings.State.open("", "manual"); }
   }

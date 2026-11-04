@@ -10,6 +10,8 @@ binds {
     Mod+K                               hotkey-overlay-title="Switch Keyboard Language" { switch-layout "next"; }
     Mod+L                               hotkey-overlay-title="Lock Screen" { spawn "qs" "-c" "pond-shell" "ipc" "call" "session" "lock"; }
 
+    Mod+N                               repeat=false hotkey-overlay-title="Toggle Notifications and Calendar" { spawn "qs" "-c" "pond-shell" "ipc" "call" "notifications" "toggle"; }
+
     // ─── Media Controls ───
     XF86AudioRaiseVolume                 allow-when-locked=true { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "increase"; }
     XF86AudioLowerVolume                 allow-when-locked=true { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "decrease"; }

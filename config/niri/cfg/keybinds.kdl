@@ -14,6 +14,7 @@ binds {
     // Mod+Space                           repeat=false hotkey-overlay-title="Open Launcher" { spawn "/usr/bin/vicinae" "toggle"; }
     // Mod+V                               repeat=false hotkey-overlay-title="Open Clipboard History" { spawn "/usr/bin/vicinae" "vicinae://launch/clipboard/history?toggle=true"; }
     // Mod+K                               hotkey-overlay-title="Switch Keyboard Language" { switch-layout "next"; }
+    // Mod+N                               repeat=false hotkey-overlay-title="Toggle Notifications and Calendar" { spawn "qs" "-c" "pond-shell" "ipc" "call" "notifications" "toggle"; }
     // Mod+L                               hotkey-overlay-title="Lock Screen" { spawn "qs" "-c" "pond-shell" "ipc" "call" "session" "lock"; }
 
     // ─── Shell ───

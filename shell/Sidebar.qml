@@ -75,7 +75,12 @@ PanelWindow {
   }
   Connections {
     target: Notifications.State
-    function onPanelOpenChanged() { if (Notifications.State.panelOpen) root.popup = ""; }
+    function onPanelOpenChanged() {
+      if (Notifications.State.panelOpen) {
+        root.dismissPanels();
+        root.popup = "";
+      }
+    }
   }
   Connections {
     target: Bluetooth.State

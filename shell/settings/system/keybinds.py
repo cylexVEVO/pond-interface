@@ -68,7 +68,7 @@ OPTIONAL = [
 
 CATEGORIES = [
     ('Applications', ('vicinae', 'kitty', 'nautilus', 'Open Launcher', 'Clipboard', 'Terminal', 'File Manager')),
-    ('Shell', ('sidebar', 'settings', 'Switch Keyboard', 'Lock Screen', 'switch-layout', 'lockscreen',
+    ('Shell', ('sidebar', 'settings', 'notifications', 'Switch Keyboard', 'Lock Screen', 'switch-layout', 'lockscreen',
                'Toggle Sidebar', 'Toggle Settings', 'Display Settings')),
     ('Media', ('volume', 'media', 'Audio', 'brightness', 'Volume Up', 'Volume Down', 'Mute', 'Track',
                'Play / Pause', 'Brightness')),
