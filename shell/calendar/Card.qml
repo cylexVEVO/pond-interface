@@ -52,6 +52,7 @@ Shell.PanelBackground {
     font.family: Shell.Theme.fontFamily
     font.pixelSize: 13
     font.weight: Font.Medium
+    font.features: ({ "tnum": 1 })
   }
 
   NavigationButton {
@@ -164,6 +165,7 @@ Shell.PanelBackground {
         opacity: cell.inMonth ? 1 : 0.3
         font.family: Shell.Theme.fontFamily
         font.pixelSize: 13
+        font.features: ({ "tnum": 1 })
       }
     }
   }

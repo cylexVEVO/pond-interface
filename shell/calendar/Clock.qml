@@ -96,6 +96,7 @@ Shell.Card {
       font.variableAxes: ({ "wdth": 100 })
       font.pixelSize: 39
       font.letterSpacing: -1.17
+      font.features: ({ "tnum": 1 })
       verticalAlignment: Text.AlignVCenter
     }
 
@@ -153,6 +154,7 @@ Shell.Card {
         font.family: Shell.Theme.fontFamily
         font.weight: Font.Normal
         font.pixelSize: 13
+        font.features: ({ "tnum": 1 })
         horizontalAlignment: Text.AlignHCenter
       }
     }
@@ -282,6 +284,7 @@ Shell.Card {
       font.family: Shell.Theme.plexFontFamily
       font.weight: Font.Normal
       font.pixelSize: 13
+      font.features: ({ "tnum": 1 })
       horizontalAlignment: Text.AlignHCenter
     }
 
@@ -295,6 +298,7 @@ Shell.Card {
       font.family: Shell.Theme.plexFontFamily
       font.weight: Font.Normal
       font.pixelSize: 13
+      font.features: ({ "tnum": 1 })
       horizontalAlignment: Text.AlignHCenter
     }
 
@@ -344,6 +348,7 @@ Shell.Card {
       font.family: Shell.Theme.plexFontFamily
       font.weight: Font.Normal
       font.pixelSize: 13
+      font.features: ({ "tnum": 1 })
       horizontalAlignment: Text.AlignHCenter
     }
 
