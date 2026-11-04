@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import ".." as Settings
@@ -8,6 +7,19 @@ import "../.." as Shell
 Settings.Modal {
     id: root
     title: "Fingerprints"
+    closeLabel: "Back to System"
+    bodyTop: 92
+    property bool checkedSetup: false
+    property bool detailsOpen: false
+    property bool choosingFinger: false
+    property string selectedFinger: "right-index-finger"
+    property string action: ""
+    property string notice: ""
+    readonly property bool busy: operation.running || settingUp
+    function fingerLabel(value) {
+        const label = value.replace(/-/g, " ");
+        return label.charAt(0).toUpperCase() + label.slice(1);
+    }
     contentHeight: fields.height + 30
     property string output: ""
     property var setupState: ({ready: false, missing: [], canSetup: false})
@@ -17,29 +29,38 @@ Settings.Modal {
     function run(args) {
         if (operation.running) return;
         output = "";
+        action = args[0];
+        notice = action === "enroll" ? "Touch the reader. Lift your finger and repeat." : action === "verify" ? "Touch the reader." : "";
         confirmDelete = false;
         operation.command = ["python3", Quickshell.shellDir + "/settings/system/fingerprints.py"].concat(args);
         operation.running = true;
     }
-    function cancel() { if (operation.running) operation.signal(15); }
-    onBackRequested: { if (settingUp) return; cancel(); Settings.State.back(); }
+    function cancel() { if (operation.running) { action = "cancel"; operation.signal(15); } }
+    onBackRequested: { if (settingUp) return; if (choosingFinger) { choosingFinger = false; return; } cancel(); Settings.State.back(); }
     onEnabledChanged: if (!enabled) cancel()
     Component.onCompleted: probe.running = true
     Component.onDestruction: cancel()
-    Keys.onEscapePressed: { if (settingUp) return; cancel(); Settings.State.back(); }
+    Keys.onEscapePressed: { if (settingUp) return; if (choosingFinger) { choosingFinger = false; return; } cancel(); Settings.State.back(); }
     Process {
         id: operation
         stdout: SplitParser { onRead: data => root.output += data + "\n" }
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
-        onExited: (code, status) => root.output += code === 0 ? "Done. Refresh to view enrolled prints.\n" : "Operation ended (" + code + "). Check that fprintd and a supported reader are available.\n"
+        onExited: (code, status) => {
+            if (root.action === "cancel") root.notice = "Scan cancelled.";
+            else if (code !== 0) { root.notice = "Couldn’t finish. See details below."; }
+            else if (root.action === "enroll") root.notice = "Fingerprint saved.";
+            else if (root.action === "delete") root.notice = "Fingerprints removed.";
+            else if (root.action === "verify") root.notice = "Scan finished. See details for the result.";
+            else root.notice = "";
+        }
     }
     Process {
         id: probe
         command: ["python3", Quickshell.shellDir + "/settings/system/fingerprint_setup.py", "status"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.setupState = JSON.parse(text); }
-                catch (e) { root.output += "Unable to check fingerprint setup.\n"; }
+                try { root.setupState = JSON.parse(text); root.checkedSetup = true; }
+                catch (e) { root.checkedSetup = true; root.notice = "Couldn’t check setup."; }
             }
         }
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
@@ -51,47 +72,125 @@ Settings.Modal {
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
         onExited: (code, status) => {
             root.settingUp = false;
-            if (code !== 0) root.output += "Setup was cancelled or failed. You can retry.\n";
+            root.notice = code === 0 ? "Ready to add a fingerprint." : "Setup didn’t finish. Try again.";
             probe.running = true;
         }
     }
+    component Action: Rectangle {
+        id: control
+        property string text
+        signal clicked
+        implicitWidth: 160; implicitHeight: 42
+        radius: 12
+        color: hover.hovered || activeFocus ? Shell.PanelStyle.controlHover : Shell.Theme.colors.settingsRow
+        opacity: enabled ? 1 : 0.4
+        activeFocusOnTab: enabled
+        Accessible.role: Accessible.Button
+        Accessible.name: text
+        Accessible.onPressAction: if (enabled) clicked()
+        Keys.onReturnPressed: clicked()
+        Keys.onSpacePressed: clicked()
+        Text {
+            anchors.centerIn: parent
+            text: control.text; color: Shell.Theme.colors.text
+            font.family: Shell.Theme.fontFamily; font.pixelSize: 14
+        }
+        HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: control.clicked() }
+    }
+    component Copy: Text {
+        width: fields.width
+        wrapMode: Text.Wrap
+        color: Shell.Theme.colors.text
+        opacity: 0.65
+        font.family: Shell.Theme.fontFamily
+        font.pixelSize: 14
+        lineHeight: 1.25
+    }
     Column {
         id: fields
-        x: 30; width: root.width - 60; spacing: 12
-        Text {
-            width: parent.width; wrapMode: Text.Wrap; color: Shell.Theme.colors.text
-            text: root.setupState.ready ? "Fingerprint support is configured. Refresh to view enrolled prints."
-                : "Setup needed: " + root.setupState.missing.join(", ") + "\nSetup installs packages and configures login and unlock. Your system will ask for administrator authentication."
+        x: 30; width: root.width - 60; spacing: 16
+        Copy {
+            text: !root.checkedSetup ? "Checking…"
+                : root.setupState.ready ? "Use a fingerprint to log in and unlock."
+                : root.settingUp ? "Setting up…"
+                : root.setupState.canSetup ? "Set up fingerprint login first."
+                : root.setupState.blocker || "Setup is unavailable."
         }
-        Button {
-            visible: !root.setupState.ready
-            text: root.settingUp ? "Setting up…" : "Set up fingerprint login"
-            enabled: root.setupState.canSetup && !root.settingUp && !operation.running
-            onClicked: { root.output = ""; root.settingUp = true; installer.running = true; }
+        Action {
+            visible: root.checkedSetup && !root.setupState.ready && root.setupState.canSetup
+            width: fields.width
+            text: root.settingUp ? "Setting up…" : "Set up"
+            enabled: !root.busy
+            onClicked: { root.output = ""; root.notice = ""; root.settingUp = true; installer.running = true; }
         }
-        Text {
-            visible: !root.setupState.ready && !root.setupState.canSetup
-            width: parent.width; wrapMode: Text.Wrap; color: Shell.Theme.colors.text
-            text: "Automatic setup requires the installed Pond setup helper, polkit, and Ubuntu, Debian, Arch Linux or Fedora."
+        Copy {
+            visible: !root.setupState.ready && root.setupState.canSetup
+            text: "Requires administrator access."
         }
-        Text {
-            width: parent.width; wrapMode: Text.Wrap
-            color: Shell.Theme.colors.text
-            text: "Choose a finger, then touch the reader repeatedly until enrollment completes. Fingerprints belong to your current account."
+        Action {
+            visible: root.checkedSetup && !root.setupState.ready && !root.setupState.canSetup
+            text: "Check again"
+            enabled: !probe.running
+            onClicked: probe.running = true
         }
-        ComboBox { id: finger; width: parent.width; model: root.fingers; enabled: !operation.running && !root.settingUp && root.setupState.ready }
-        Row {
-            spacing: 8
-            Button { text: "Enroll"; enabled: !operation.running && !root.settingUp && root.setupState.ready; onClicked: root.run(["enroll", finger.currentText]) }
-            Button { text: "Refresh"; enabled: !operation.running && !root.settingUp && root.setupState.ready; onClicked: root.run(["list"]) }
-            Button { text: "Test"; enabled: !operation.running && !root.settingUp && root.setupState.ready; onClicked: root.run(["verify"]) }
-            Button { text: "Cancel"; enabled: operation.running; onClicked: root.cancel() }
+        Column {
+            width: fields.width; spacing: 8
+            visible: root.setupState.ready
+            Settings.Field {
+                id: fingerField
+                width: parent.width
+                title: "Finger"; value: root.fingerLabel(root.selectedFinger)
+                enabled: !root.busy
+                highlighted: root.choosingFinger
+                onClicked: { root.choosingFinger = true; Qt.callLater(() => fingerMenu.forceActiveFocus()); }
+            }
+            Row {
+                spacing: 8
+                Action { width: (fields.width - 8) / 2; text: "Add fingerprint"; enabled: !root.busy; onClicked: root.run(["enroll", root.selectedFinger]) }
+                Action { width: (fields.width - 8) / 2; text: "Test reader"; enabled: !root.busy; onClicked: root.run(["verify"]) }
+            }
+            Settings.Field {
+                width: parent.width; title: "Saved fingerprints"; value: "View"; navigation: true
+                enabled: !root.busy
+                onClicked: { root.run(["list"]); root.detailsOpen = true; }
+            }
         }
-        Button {
-            text: root.confirmDelete ? "Confirm removal of all fingerprints" : "Remove all fingerprints"
-            enabled: !operation.running && !root.settingUp && root.setupState.ready
-            onClicked: { if (root.confirmDelete) root.run(["delete"]); else root.confirmDelete = true; }
+        Copy { visible: !!root.notice; text: root.notice; opacity: 0.9 }
+        Action { visible: operation.running; text: "Cancel"; onClicked: root.cancel() }
+        Column {
+            width: fields.width; spacing: 8
+            visible: root.setupState.ready && !root.busy
+            Settings.Field {
+                width: parent.width; title: root.confirmDelete ? "Remove all saved fingerprints?" : "Remove fingerprints"
+                value: root.confirmDelete ? "" : "All"
+                onClicked: root.confirmDelete = true
+            }
+            Row {
+                visible: root.confirmDelete; spacing: 8
+                Action { text: "Remove all"; onClicked: root.run(["delete"]) }
+                Action { text: "Keep them"; onClicked: root.confirmDelete = false }
+            }
         }
-        Text { width: parent.width; text: root.output; wrapMode: Text.Wrap; color: Shell.Theme.colors.text }
+        Settings.Field {
+            visible: !!root.output
+            width: parent.width; title: "Details"; value: root.detailsOpen ? "Hide" : "Show"
+            onClicked: root.detailsOpen = !root.detailsOpen
+        }
+        Copy { visible: root.detailsOpen && !!root.output; text: root.output; font.pixelSize: 12 }
     }
+    overlay: [
+        MouseArea { anchors.fill: parent; visible: root.choosingFinger; onClicked: root.choosingFinger = false },
+        Settings.Dropdown {
+            id: fingerMenu
+            visible: root.choosingFinger
+            x: root.width - width - 30
+            y: Math.max(20, Math.min(root.height - height - 20, fingerField.mapToItem(root, 0, fingerField.height).y))
+            maximumHeight: Math.min(300, root.height - 40)
+            options: root.fingers.map(finger => ({value: finger, label: root.fingerLabel(finger)}))
+            currentValue: root.selectedFinger
+            onDismissed: { root.choosingFinger = false; fingerField.forceActiveFocus(); }
+            onSelected: value => { root.selectedFinger = value; root.choosingFinger = false; fingerField.forceActiveFocus(); }
+        }
+    ]
 }

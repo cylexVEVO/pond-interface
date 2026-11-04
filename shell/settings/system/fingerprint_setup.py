@@ -56,7 +56,10 @@ def status():
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
-    return {'ready': not missing, 'missing': missing,
+    blocker = ('Reinstall Pond to enable setup.' if not Path(HELPER).is_file()
+               else 'Install polkit to enable setup.' if not shutil.which('pkexec')
+               else 'Automatic setup isn’t available on this system.' if not packages() else '')
+    return {'ready': not missing, 'missing': missing, 'blocker': blocker,
             'canSetup': bool(packages() and shutil.which('pkexec') and Path(HELPER).is_file()),
             'sddm': bool(sddm)}
 

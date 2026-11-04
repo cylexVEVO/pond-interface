@@ -6,6 +6,7 @@ import ".." as Shell
 
 Scope {
   id: root
+  readonly property bool registered: agent.isRegistered
   PolkitAgent { id: agent }
 
   // Destroy the entire prompt between requests, including any entered secret.

@@ -17,7 +17,8 @@ ShellRoot {
   property bool expanded: true
 
   Shortcuts {}
-  Authentication.Agent {}
+  // Load the optional Polkit module without making it a shell dependency.
+  readonly property bool authenticationReady: Authentication.State.registered
 
   Logind {
     id: logind

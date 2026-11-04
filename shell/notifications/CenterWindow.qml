@@ -146,8 +146,9 @@ PanelWindow {
 
   Text {
     x: panelBackground.x + Notifications.Style.contentPadding
-    y: panelBackground.y + Notifications.Style.contentPadding
-    height: 28
+    y: panelBackground.y
+    height: Notifications.Style.panelHeaderHeight
+    verticalAlignment: Text.AlignVCenter
     text: root.itemCount > 0 ? "Notifications · " + root.itemCount : "Notifications"
     color: Shell.Theme.colors.notificationTitle
     font.family: Shell.Theme.fontFamily
@@ -163,8 +164,9 @@ PanelWindow {
     property real hoverOpacity: clearPointer.containsMouse ? 1 : 0.5
     x: panelBackground.x + Notifications.Style.panelWidth
        - Notifications.Style.contentPadding - width
-    y: panelBackground.y + 21
-    height: 19
+    y: panelBackground.y
+    height: Notifications.Style.panelHeaderHeight
+    verticalAlignment: Text.AlignVCenter
     text: "Clear all"
     color: Notifications.Style.foreground
     opacity: root.reveal * hoverOpacity
@@ -179,7 +181,8 @@ PanelWindow {
     MouseArea {
       id: clearPointer
       anchors.fill: parent
-      anchors.margins: -8
+      anchors.leftMargin: -8
+      anchors.rightMargin: -8
       hoverEnabled: true
       acceptedButtons: Qt.LeftButton
       cursorShape: Qt.PointingHandCursor
@@ -211,9 +214,9 @@ PanelWindow {
   ClippingRectangle {
     id: listClip
     x: root.panelLeft - (1 - root.reveal) * 4
-    y: root.panelTop + (root.listMode ? 60 : 0)
-    width: 280
-    height: root.panelHeight - (root.listMode ? 60 : 0)
+    y: root.panelTop + Notifications.Style.panelHeaderHeight
+    width: Notifications.Style.panelWidth
+    height: root.panelHeight - Notifications.Style.panelHeaderHeight
     color: "transparent"
     bottomLeftRadius: root.listMode ? 16 : 0
     bottomRightRadius: 0
@@ -225,7 +228,7 @@ PanelWindow {
       clip: true
       boundsBehavior: Flickable.StopAtBounds
       Shell.ScrollWheel { view: notificationList }
-      width: 288
+      width: Notifications.Style.interactiveWidth
       height: listClip.height
       model: Notifications.State.historyNotifications
       interactive: contentHeight > height
@@ -267,7 +270,7 @@ PanelWindow {
     }
     x: listClip.x
     y: listClip.y - 8
-    width: 288
+    width: Notifications.Style.interactiveWidth
     height: listClip.height + 8
     clip: true
     opacity: root.reveal

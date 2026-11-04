@@ -18,10 +18,10 @@ Item {
   readonly property alias surface: surface
   readonly property int padding: inlinePreview ? 12 : 16
   readonly property int iconSize: inlinePreview ? 14 : 16
-  readonly property int lineHeight: inlinePreview ? 19 : 16
+  readonly property int lineHeight: inlinePreview || panelRow ? 19 : 16
   readonly property real targetHeight: inlinePreview
       ? Math.min(103, 40 + bodyText.height + 12)
-      : Math.max(76, Math.min(108, bodyText.y + bodyText.height + 16))
+      : Math.max(76, Math.min(panelRow ? 152 : 108, bodyText.y + bodyText.height + 16))
   property real animatedHeight: targetHeight
   implicitWidth: 288
   implicitHeight: animatedHeight
@@ -86,13 +86,14 @@ Item {
   }
 
   Text {
-    x: root.padding + (root.inlinePreview ? 0 : root.iconSize + 4)
+    x: root.padding + (root.inlinePreview ? 0 : root.iconSize + 8)
     y: timeText.y
     width: Math.max(0, timeText.x - x - 8)
     height: timeText.height
     text: Notifications.State.title(root.notification)
     color: Notifications.Style.foreground
-    opacity: 0.5
+    opacity: root.panelRow ? 0.7 : 0.5
+    textFormat: Text.PlainText
     elide: Text.ElideRight
     font.family: Shell.Theme.fontFamily
     font.pixelSize: 13
@@ -104,15 +105,16 @@ Item {
     x: root.padding
     y: root.inlinePreview ? 40 + bodyMetrics.capitalHeight - baselineOffset : 44
     width: root.surfaceWidth - root.padding * 2
-    height: Math.min(root.lineHeight * 3, Math.max(root.lineHeight,
+    height: Math.min(root.lineHeight * (root.panelRow ? 5 : 3), Math.max(root.lineHeight,
         root.inlinePreview ? implicitHeight : Math.round(implicitHeight / root.lineHeight) * root.lineHeight))
     text: Notifications.State.message(root.notification)
     color: Notifications.Style.foreground
+    textFormat: Text.PlainText
     wrapMode: Text.Wrap
-    maximumLineCount: 3
+    maximumLineCount: root.panelRow ? 5 : 3
     elide: Text.ElideRight
     font.family: Shell.Theme.fontFamily
-    font.weight: Font.Medium
+    font.weight: root.panelRow ? Font.Normal : Font.Medium
     font.pixelSize: 13
     lineHeightMode: Text.FixedHeight
     lineHeight: root.lineHeight

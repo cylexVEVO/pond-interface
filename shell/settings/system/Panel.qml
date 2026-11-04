@@ -13,6 +13,7 @@ Settings.Modal {
   Column {
     id: fields
     x: 30; width: root.width - 60; spacing: 8
+    AuthenticationBanner { width: parent.width }
     Settings.Field {
       objectName: "systemMouse"
       width: parent.width; navigation: true
