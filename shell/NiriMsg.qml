@@ -15,6 +15,8 @@ Singleton {
   property var dragOrigin: null
   property bool _workspaceLauncherOpen: false
   property bool _workspaceLauncherStateKnown: false
+  // Loading an empty desktop at boot is not a request to show the launcher.
+  property bool _workspaceLauncherAllowed: false
   property var _windows: ({})
   property var _appInfoCache: ({})
   property ListModel workspaceRows: ListModel {}
@@ -48,6 +50,7 @@ Singleton {
   // Niri's bottom layer slides with workspaces. Background + the backdrop
   // rule keeps the visual fixed; Vicinae provides a separate input surface.
   function _openWorkspaceLauncher(force) {
+    _workspaceLauncherAllowed = true;
     workspaceLauncherCloseTimer.stop();
     _workspaceLauncherOpen = true;
     _workspaceLauncherStateKnown = true;
@@ -90,7 +93,7 @@ Singleton {
   // An empty workspace elsewhere must not expose the launcher around narrow or
   // floating windows on the focused workspace. Keep it only during the switch.
   function _syncWorkspaceLauncher(force) {
-    if (overviewOpen || dragOrigin) {
+    if (!_workspaceLauncherAllowed || overviewOpen || dragOrigin) {
       _closeWorkspaceLauncher(true);
       return;
     }
@@ -299,6 +302,7 @@ Singleton {
   }
 
   function _handleEvent(ev) {
+    const previousFocusedWorkspace = workspaces.find(w => w.isFocused);
     if (ev.KeyboardLayoutsChanged) {
       keyboardLayouts = ev.KeyboardLayoutsChanged.keyboard_layouts.names;
       keyboardLayoutIndex = ev.KeyboardLayoutsChanged.keyboard_layouts.current_idx;
@@ -372,6 +376,12 @@ Singleton {
       _windows = wins;
     } else {
       return;
+    }
+    if (ev.WorkspacesChanged || ev.WorkspaceActivated) {
+      const focusedWorkspace = workspaces.find(w => w.isFocused);
+      if (previousFocusedWorkspace && focusedWorkspace
+          && previousFocusedWorkspace.id !== focusedWorkspace.id)
+        _workspaceLauncherAllowed = true;
     }
     if (ev.WorkspacesChanged || ev.WorkspaceActivated || ev.WindowsChanged
         || ev.WindowOpenedOrChanged || ev.WindowClosed || ev.OverviewOpenedOrClosed)
