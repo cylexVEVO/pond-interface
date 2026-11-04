@@ -49,7 +49,7 @@ ShellRoot {
 
   Process {
     id: sleepLock
-    command: ["sh", "-c", "python3 \"$0\" lock; for _ in $(seq 40); do qs -p /usr/share/pond-interface/lockscreen ipc call lockscreen isSecure 2>/dev/null | grep -qx true && exit; sleep 0.1; done", Quickshell.shellDir + "/settings/session.py"]
+    command: ["sh", "-c", "python3 \"$0\" lock; for _ in $(seq 40); do qs -p \"$1\" ipc call lockscreen isSecure 2>/dev/null | grep -qx true && exit; qs -p /usr/share/pond-interface/lockscreen ipc call lockscreen isSecure 2>/dev/null | grep -qx true && exit; sleep 0.1; done", Quickshell.shellDir + "/settings/session.py", Quickshell.shellDir + "/../lockscreen"]
     onExited: if (logind.preparingForSleep) logind.sleepInhibited = false
   }
 
@@ -62,6 +62,13 @@ ShellRoot {
       if (error !== FileViewError.FileNotFound) return;
       Settings.State.open("", "manual");
       Qt.callLater(() => setText("shown\n"));
+    }
+  }
+
+  IpcHandler {
+    target: "session"
+    function lock() {
+      Quickshell.execDetached(["python3", Quickshell.shellDir + "/settings/session.py", "lock"]);
     }
   }
 

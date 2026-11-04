@@ -15,6 +15,7 @@ Item {
     property int maxTriesResult: 3
 
     property string _pendingCredential: ""
+    property bool _allowEmptyCredential: false
     property bool _terminalHandled: false
     property string _backendErrorMessage: ""
 
@@ -24,6 +25,7 @@ Item {
 
     function clearPendingCredential() {
         _pendingCredential = "";
+        _allowEmptyCredential = false;
     }
 
     function reset() {
@@ -44,6 +46,7 @@ Item {
             return false;
 
         _pendingCredential = snapshot;
+        _allowEmptyCredential = allowEmpty;
         _terminalHandled = false;
         _backendErrorMessage = "";
         authenticationPending = true;
@@ -67,7 +70,9 @@ Item {
     function handlePamMessage() {
         if (!backend || !backend.responseRequired)
             return;
-        if (_pendingCredential.length === 0) {
+        // pam_fprintd may still raise a conversation prompt while waiting for
+        // the reader; answer with an empty string instead of aborting the scan.
+        if (_pendingCredential.length === 0 && !_allowEmptyCredential) {
             if (backend.active)
                 backend.abort();
             finishWithError("Authentication requested an unexpected response");

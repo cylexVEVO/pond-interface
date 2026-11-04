@@ -67,6 +67,14 @@ timeouts or mismatches. The password field stays usable. Submitting a password
 stops the scan; cancelling or failing a scan arms another one.
 
 Password and fingerprint each use their own PamContext and auth-only policy
-file, matching Quickshell's PAM guidance. Custom `POND_PAM_SERVICE` overrides
-still load from `/etc/pam.d` for directory accounts or site policy. SDDM keeps
-its own PAM conversation; setup only inserts a sufficient fingerprint line there.
+file, matching Quickshell's PAM guidance. The lock screen prefers
+`/etc/pam.d/pond-password` and `pond-fingerprint` when setup has written them,
+and otherwise uses the bundled copies under `lockscreen/session/pam.d/`.
+Custom `POND_PAM_SERVICE` overrides still load from `/etc/pam.d` for directory
+accounts or site policy. SDDM keeps its own PAM conversation; setup only
+inserts a sufficient fingerprint line there.
+
+Setup requires those `/etc/pam.d` files to match the current auth-only policy,
+so PAM changes re-offer **Set up fingerprint login**. After setup (or any
+lock-screen update), lock once: the session helper restarts a stale lock screen
+daemon because the lock UI disables live QML reload.

@@ -62,7 +62,12 @@ def status():
     if not any(list(Path(base).glob(pattern)) for base in ('/usr/lib', '/usr/lib64', '/lib', '/lib64')
                for pattern in ('security/pam_fprintd.so', '*/security/pam_fprintd.so')):
         missing.append('PAM fingerprint module')
-    # Lock-screen PAM ships with the session UI; /etc copies stay optional mirrors.
+    # Exact match forces a re-setup after PAM policy changes (e.g. dropping
+    # account rules, or adding the password-only service).
+    if read(PAM / 'pond-fingerprint') != LOCK:
+        missing.append('lock screen configuration')
+    if read(PAM / 'pond-password') != PASSWORD:
+        missing.append('password unlock configuration')
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
@@ -77,7 +82,8 @@ def status():
     if not Path('/usr/bin/pkexec').is_file():
         blockers.append('pkexec is missing. Install your distribution’s polkit package to allow administrator authentication.')
     return {'ready': not missing, 'missing': missing, 'blocker': '\n\n'.join(blockers),
-            'system': system, 'canSetup': not blockers, 'sddm': bool(sddm)}
+            'system': system, 'canSetup': not blockers, 'sddm': bool(sddm),
+            'missingLabel': ', '.join(missing)}
 
 
 def launch_command():
@@ -128,7 +134,7 @@ def setup():
     atomic_write(PAM / 'pond-fingerprint', LOCK)
     if new_login != old_login:
         atomic_write(PAM / 'sddm', new_login)
-    print('Setup complete. Enroll a finger below. The reader activates on demand.', flush=True)
+    print('Setup complete. Lock the screen once (Mod+L) so unlock reloads, then enroll a finger.', flush=True)
 
 
 if __name__ == '__main__':

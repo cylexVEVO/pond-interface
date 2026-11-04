@@ -103,10 +103,23 @@ class SetupTests(unittest.TestCase):
             expected = setup.PASSWORD if path.name == 'pond-password' else setup.LOCK
             self.assertEqual(path.read_text(), expected, relative)
 
-    def test_status_does_not_require_etc_lock_pam_mirrors(self):
+    def test_status_requires_current_etc_lock_pam(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(setup, 'PAM', Path(directory)), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
+            pam = Path(directory)
+            (pam / 'pond-fingerprint').write_text('auth required pam_fprintd.so\naccount required pam_unix.so\n')
+            with patch.object(setup, 'PAM', pam), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
                 result = setup.status()
-            self.assertNotIn('lock screen configuration', result['missing'])
-            self.assertNotIn('password unlock configuration', result['missing'])
+            self.assertIn('lock screen configuration', result['missing'])
+            self.assertIn('password unlock configuration', result['missing'])
+            self.assertFalse(result['ready'])
+            self.assertIn('lock screen configuration', result['missingLabel'])
+
+    def test_status_ready_when_etc_matches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            pam = Path(directory)
+            (pam / 'pond-fingerprint').write_text(setup.LOCK)
+            (pam / 'pond-password').write_text(setup.PASSWORD)
+            with patch.object(setup, 'PAM', pam), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
+                result = setup.status()
+            self.assertEqual(result['missing'], [])
             self.assertTrue(result['ready'])

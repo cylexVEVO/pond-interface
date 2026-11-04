@@ -149,11 +149,14 @@ Settings.Modal {
         stderr: SplitParser { onRead: data => root.output += data + "\n" }
         onExited: (code, status) => {
             root.settingUp = false;
-            root.notice = code === 0 ? "Ready to add a fingerprint."
+            root.notice = code === 0
+                ? "Setup updated. Lock once (Mod+L) to load the new unlock path, then add a fingerprint."
                 : code === 126 ? "Setup cancelled."
                 : code === 127 ? "Couldn’t get administrator access."
                 : "Setup didn’t finish.";
             root.operationError = code !== 0 && code !== 126;
+            if (code === 0)
+                Quickshell.execDetached(["python3", Quickshell.shellDir + "/settings/session.py", "reload-lockscreen"]);
             probe.running = true;
         }
     }
@@ -199,7 +202,10 @@ Settings.Modal {
             visible: !root.setupState.ready
             Copy {
                 text: !root.checkedSetup ? "Checking fingerprint support…" : root.settingUp ? "Setting up fingerprint login…"
-                    : root.setupState.canSetup ? "Enable fingerprint login on this computer."
+                    : root.setupState.canSetup
+                        ? (root.setupState.missingLabel
+                            ? "Needs update: " + root.setupState.missingLabel + "."
+                            : "Enable fingerprint login on this computer.")
                     : root.setupState.blocker || "Couldn’t check setup. Try again."
             }
             Action {
