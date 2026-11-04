@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "authentication" as Authentication
 import "battery" as Battery
 import "settings" as Settings
 import "settings/appearance" as Appearance
@@ -16,6 +17,7 @@ ShellRoot {
   property bool expanded: true
 
   Shortcuts {}
+  Authentication.Agent {}
 
   Logind {
     id: logind
