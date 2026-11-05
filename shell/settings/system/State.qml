@@ -1,13 +1,13 @@
 pragma Singleton
 import QtQuick
 import ".." as Settings
+import "../shortcuts" as Shortcuts
 import Quickshell
 import Quickshell.Io
 
 Singleton {
   id: root
   readonly property string helper: decodeURIComponent(Qt.resolvedUrl("control.py").toString().replace(/^file:\/\//, ""))
-  readonly property string keybindHelper: decodeURIComponent(Qt.resolvedUrl("keybinds.py").toString().replace(/^file:\/\//, ""))
   property var languages: []
   property var timezones: []
   property var selectedLanguages: []
@@ -16,14 +16,13 @@ Singleton {
   property string timezoneLabel: ""
   property string error: ""
   property var mouse: ({speed: 0.5, scroll: 1, acceleration: true, naturalTouchpad: true, naturalMouse: false})
-  property var shortcuts: []
-  property string languageChord: "Super+K"
-  readonly property bool busy: action.running || keybindAction.running
+  readonly property string languageChord: {
+    const bind = Shortcuts.State.binds.find(item => item.action.indexOf('switch-layout "next"') >= 0);
+    return bind ? bind.key.replace(/^Mod\+/, "Super+") : "None";
+  }
+  readonly property bool busy: action.running
   readonly property bool active: Settings.State.opened && ["system", "mouse", "keyboard", "shortcuts", "timezone"].indexOf(Settings.State.page) >= 0
-  readonly property bool shortcutsActive: Settings.State.opened
-      && (Settings.State.page === "shortcuts" || Settings.State.page === "keyboard")
   onActiveChanged: if (active) { error = ""; query.running = true; }
-  onShortcutsActiveChanged: if (shortcutsActive) { error = ""; keybindQuery.running = true; }
   Process {
     id: query
     command: ["python3", root.helper, "load"]
@@ -32,15 +31,6 @@ Singleton {
   Process {
     id: action
     stdout: StdioCollector { onStreamFinished: root.accept(text) }
-  }
-  Process {
-    id: keybindQuery
-    command: ["python3", root.keybindHelper, "load"]
-    stdout: StdioCollector { onStreamFinished: root.acceptKeybinds(text) }
-  }
-  Process {
-    id: keybindAction
-    stdout: StdioCollector { onStreamFinished: root.acceptKeybinds(text) }
   }
   Timer {
     id: mouseCommit
@@ -62,32 +52,13 @@ Singleton {
       error = "";
     } catch (e) { error = "Could not read system settings"; }
   }
-  function acceptKeybinds(text) {
-    try {
-      const result = JSON.parse(text);
-      if (result.error) { error = result.error; return; }
-      if (result.shortcuts) shortcuts = result.shortcuts;
-      if (result.languageChord) languageChord = result.languageChord;
-      error = "";
-    } catch (e) { error = "Could not read keyboard shortcuts"; }
-  }
   function apply(args) {
     if (busy) return;
     error = "";
     action.command = ["python3", root.helper].concat(args);
     action.running = true;
   }
-  function applyKeybind(args) {
-    if (busy) return;
-    error = "";
-    keybindAction.command = ["python3", root.keybindHelper].concat(args);
-    keybindAction.running = true;
-  }
   function toggleLanguage(id) { apply(["keyboard", id]); }
   function setTimezone(id) { if (id !== timezone) apply(["timezone", id]); }
   function setMouse(key, value) { mouse = Object.assign({}, mouse, {[key]: value}); mouseCommit.restart(); }
-  function setShortcut(id, chord) { applyKeybind(["set", id, chord]); }
-  function unbindShortcut(id) { applyKeybind(["unbind", id]); }
-  function resetShortcut(id) { applyKeybind(["reset", id]); }
-  function resetAllShortcuts() { applyKeybind(["reset-all"]); }
 }

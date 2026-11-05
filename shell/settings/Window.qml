@@ -9,6 +9,7 @@ import "display" as Display
 import "information" as Information
 import "manual" as Manual
 import "system" as System
+import "shortcuts" as Shortcuts
 import "../battery" as Battery
 import "../updates" as Updates
 import Quickshell
@@ -298,7 +299,7 @@ PanelWindow {
     sourceComponent: ({
       wallpaper: wallpaperPage, information: informationPage, manual: manualPage, display: displayPage, arrange: arrangePage,
       system: systemPage, mouse: mousePage, lock: lockPage, keyboard: keyboardPage,
-      shortcuts: shortcutsPage, timezone: timezonePage, fingerprints: fingerprintsPage
+      shortcuts: shortcutsPage, shortcutEditor: shortcutEditorPage, timezone: timezonePage, fingerprints: fingerprintsPage
     })[root.displayedPage] || appearancePage
     enabled: root.modalOpen && !Authentication.State.promptActive && !pageTransition.running
     opacity: root.modalOpen ? root.pageOpacity : 0
@@ -414,7 +415,14 @@ PanelWindow {
   }
   Component {
     id: shortcutsPage
-    System.Keybinds {
+    Shortcuts.Panel {
+      availableHeight: Math.max(200, root.height - 70)
+      scale: Math.min(1, (root.width - 60) / implicitWidth)
+    }
+  }
+  Component {
+    id: shortcutEditorPage
+    Shortcuts.Editor {
       availableHeight: Math.max(200, root.height - 70)
       scale: Math.min(1, (root.width - 60) / implicitWidth)
     }
