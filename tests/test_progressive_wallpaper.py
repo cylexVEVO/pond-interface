@@ -2,6 +2,8 @@
 import os
 from pathlib import Path
 import threading
+import tempfile
+import uuid
 import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -42,10 +44,11 @@ class ProgressiveWallpaperTests(unittest.TestCase):
     def setUp(self):
         self.provider = Images()
         self.view = QQuickView()
-        self.view.engine().addImageProvider('test', self.provider)
+        self.provider_id = 'test' + uuid.uuid4().hex
+        self.view.engine().addImageProvider(self.provider_id, self.provider)
         self.view.setResizeMode(QQuickView.SizeRootObjectToView)
-        self.view.setInitialProperties({'source': 'image://test/detail',
-                                        'previewSource': 'image://test/preview'})
+        self.view.setInitialProperties({'source': f'image://{self.provider_id}/detail',
+                                        'previewSource': f'image://{self.provider_id}/preview'})
         self.view.setSource(QUrl.fromLocalFile(str(
             Path(__file__).resolve().parents[1] / 'wallpaper/desktop/ProgressiveImage.qml')))
         self.assertFalse(self.view.errors(), self.view.errors())
@@ -80,6 +83,25 @@ class ProgressiveWallpaperTests(unittest.TestCase):
         self.wait_until(lambda: detail.property('visible'))
         QTest.qWait(30)
         self.assertEqual(self.view.grabWindow().pixelColor(320, 180).name(), QColor('blue').name())
+
+    def test_local_preview_bypasses_busy_async_loader_without_restarting_detail(self):
+        self.root.setProperty('previewSource', QUrl())
+        self.view.resize(640, 360)
+        self.view.show()
+        self.wait_until(lambda: any(r[0] == 'detail' for r in self.provider.requests))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'proxy.jpg'
+            image = QImage(96, 64, QImage.Format_RGB32)
+            image.fill(QColor('red'))
+            self.assertTrue(image.save(str(path)))
+            self.root.setProperty('previewSource', QUrl.fromLocalFile(str(path)))
+            self.wait_until(lambda: self.root.property('ready'))
+            QTest.qWait(30)
+            color = self.view.grabWindow().pixelColor(320, 180)
+            self.assertGreater(color.red(), 240)
+            self.assertLess(color.blue(), 10)
+            self.assertFalse(self.provider.release.is_set())
+            self.assertEqual(sum(r[0] == 'detail' for r in self.provider.requests), 1)
 
     def test_no_native_resolution_decode_before_geometry(self):
         QTest.qWait(30)

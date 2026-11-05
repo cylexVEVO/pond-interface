@@ -10,6 +10,8 @@ Rectangle {
   property url previewSource: ""
   property date now: new Date()
   property bool live: true
+  readonly property bool settled: configured && (custom ? image.settled
+      : skyLoader.status === Loader.Ready || skyLoader.status === Loader.Error)
   color: "#0b101c"
   layer.enabled: root.dimmed
   layer.format: ShaderEffectSource.RGBA16F
@@ -23,6 +25,7 @@ Rectangle {
 
   // Static wallpaper startup should never initialize the daylight shader.
   Loader {
+    id: skyLoader
     anchors.fill: parent
     active: root.configured && !root.custom
     sourceComponent: Sky { live: false; now: root.now }
@@ -35,6 +38,7 @@ Rectangle {
     onTriggered: root.now = new Date()
   }
   ProgressiveImage {
+    id: image
     anchors.fill: parent
     source: root.configured && root.custom ? root.imageSource : ""
     previewSource: root.configured && root.custom ? root.previewSource : ""

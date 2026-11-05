@@ -26,7 +26,7 @@ for entry in json.loads((preview.ROOT / 'catalog.json').read_text()):
     assert cached.parent == preview.BUNDLED
     image = QImageReader(str(cached)).read()
     assert not image.isNull()
-    assert image.width() <= preview.WIDTH
+    assert max(image.width(), image.height()) <= preview.WIDTH
     assert cached.stat().st_size < source.stat().st_size
 ''')
 

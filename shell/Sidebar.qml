@@ -16,6 +16,8 @@ PanelWindow {
   id: root
   // Start optional UI work only after a frame has reached the compositor.
   property bool firstFramePresented: false
+  property bool wallpaperSettled: true
+  readonly property bool preloadReady: firstFramePresented && wallpaperSettled
   readonly property bool panelsReady: bluetoothPanel.settled
   Item {
     id: frameObserver
@@ -170,7 +172,7 @@ PanelWindow {
 
     Minimap.Map {
       id: workspacesCard
-      preloadIconColors: root.firstFramePresented
+      preloadIconColors: root.preloadReady
       screen: root.screen
       collapseProgress: root.collapseProgress
       maximumHeight: Math.max(64,
@@ -229,7 +231,7 @@ PanelWindow {
 
   DeferredPanel {
     id: audioPanel
-    preload: root.firstFramePresented
+    preload: root.preloadReady
     windowSource: Qt.resolvedUrl("audio/Panel.qml")
     x: root.panelX
     z: 80

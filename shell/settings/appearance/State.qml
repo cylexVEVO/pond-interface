@@ -56,7 +56,7 @@ Singleton {
         root.wallpaperMode = state.mode === "custom" ? "custom" : "dynamic";
         root.wallpaperPath = state.path || "";
         root.wallpaperUrl = state.url || "";
-        root.wallpaperPreviewUrl = state.preview || root.bundledPreview(root.wallpaperUrl);
+        root.wallpaperPreviewUrl = state.preview || root.bundledPreview(root.wallpaperPath);
         root.ensurePreview();
       } catch(e) { console.warn("Appearance wallpaper:", e); }
       root.wallpaperReady = true;
@@ -64,11 +64,17 @@ Singleton {
   }
   // Older saved selections do not have a preview field yet. Built-in images
   // can use their bundled proxy immediately; custom images get a cached one.
-  function bundledPreview(url) {
-    const included = Qt.resolvedUrl("../../../wallpaper/included/").toString();
-    const file = url.split("?")[0];
-    return file.startsWith(included)
-        ? Qt.resolvedUrl("../../../wallpaper/previews/").toString() + file.slice(included.length) : "";
+  function bundledPreview(path) {
+    // Qt.resolvedUrl resolves QML through Quickshell's qs: scheme. Saved
+    // wallpapers are filesystem paths, so compare filesystem paths instead.
+    const directory = Quickshell.shellDir.replace(/\/+$/, "").split("/");
+    directory.pop();
+    const base = directory.join("/") + "/wallpaper/";
+    const included = base + "included/";
+    if (!path.startsWith(included)) return "";
+    const filename = path.slice(included.length);
+    if (!filename || filename.includes("/")) return "";
+    return "file://" + (base + "previews/" + filename).split("/").map(encodeURIComponent).join("/");
   }
   function ensurePreview() {
     if (wallpaperMode !== "custom" || wallpaperPreviewUrl || previewQuery.running) return;

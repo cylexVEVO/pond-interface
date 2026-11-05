@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 
 PanelWindow {
+  readonly property alias settled: background.settled
   property alias configured: background.configured
   property alias previewSource: background.previewSource
   property alias custom: background.custom

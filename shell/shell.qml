@@ -118,6 +118,7 @@ ShellRoot {
       id: output
       required property var modelData
       Wallpaper.Window {
+        id: wallpaper
         screen: modelData
         configured: Appearance.State.wallpaperReady
         previewSource: Appearance.State.wallpaperPreviewUrl
@@ -127,6 +128,7 @@ ShellRoot {
       }
       Sidebar {
         id: sidebar
+        wallpaperSettled: wallpaper.settled
         screen: modelData
         expanded: root.expanded
         onToggleRequested: root.expanded = !root.expanded

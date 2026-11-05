@@ -1,7 +1,7 @@
 // Pond shell integration.
 // Put personal settings in ~/.config/niri/cfg/*.kdl. Don't modify this file.
 
-spawn-at-startup "qs" "-p" "/usr/share/pond-interface/shell"
+spawn-at-startup "qs" "--no-duplicate" "-p" "/usr/share/pond-interface/shell"
 
 binds {
     // These are defaults. Personal keybind choices go in ~/.config/niri/cfg/keybinds.kdl

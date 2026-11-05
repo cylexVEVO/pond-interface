@@ -17,8 +17,10 @@ def generate(source, destination):
     reader = QImageReader(str(source))
     reader.setAutoTransform(True)
     size = reader.size()
-    if size.width() > WIDTH:
-        reader.setScaledSize(QSize(WIDTH, max(1, round(size.height() * WIDTH / size.width()))))
+    if max(size.width(), size.height()) > WIDTH:
+        scale = WIDTH / max(size.width(), size.height())
+        reader.setScaledSize(QSize(max(1, round(size.width() * scale)),
+                                  max(1, round(size.height() * scale))))
     image = reader.read()
     if image.isNull():
         raise ValueError(f"Could not read wallpaper: {reader.errorString()}")
@@ -37,7 +39,7 @@ def preview(path):
     if source.parent == INCLUDED and bundled.is_file():
         return bundled
     stat = source.stat()
-    key = hashlib.sha256(f"{source}:{stat.st_mtime_ns}:{stat.st_size}".encode()).hexdigest()
+    key = hashlib.sha256(f"bounded-v2:{source}:{stat.st_mtime_ns}:{stat.st_size}".encode()).hexdigest()
     destination = CACHE / f"{key}.jpg"
     return destination if destination.is_file() else generate(source, destination)
 

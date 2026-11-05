@@ -10,6 +10,8 @@ Item {
   property url detailSource: ""
   readonly property bool ready: detail.status === Image.Ready || preview.status === Image.Ready
 
+  readonly property bool settled: ready || detail.status === Image.Error
+
   function updateDetail() {
     if (!sized || source.toString() === "") { detailSource = ""; return; }
     // A newly generated custom preview must not cancel an existing decode.
@@ -29,7 +31,9 @@ Item {
     source: root.sized ? root.previewSource : ""
     fillMode: Image.PreserveAspectCrop
     autoTransform: true
-    asynchronous: true
+    // Generated local proxies are bounded to 960px. Decode these directly so
+    // the first background cannot sit behind app icons in Qt's async queue.
+    asynchronous: !root.previewSource.toString().startsWith("file:")
     visible: detail.status !== Image.Ready
     onStatusChanged: Qt.callLater(root.updateDetail)
   }
