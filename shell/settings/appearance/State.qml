@@ -12,8 +12,6 @@ Singleton {
   property string wallpaperMode: "dynamic"
   property string wallpaperPath: ""
   property string wallpaperUrl: ""
-  property string wallpaperPreviewUrl: ""
-  property bool wallpaperReady: false
   property var wallpapers: []
   property bool wallpaperRefreshPending: false
   property var display: ({})
@@ -48,53 +46,14 @@ Singleton {
     printErrors: false
     watchChanges: true
     onFileChanged: reload()
-    onLoadFailed: root.wallpaperReady = true
     onLoaded: {
-      root.wallpaperReady = false;
       try {
         const state = JSON.parse(text());
         root.wallpaperMode = state.mode === "custom" ? "custom" : "dynamic";
         root.wallpaperPath = state.path || "";
         root.wallpaperUrl = state.url || "";
-        root.wallpaperPreviewUrl = state.preview || root.bundledPreview(root.wallpaperPath);
-        root.ensurePreview();
       } catch(e) { console.warn("Appearance wallpaper:", e); }
-      root.wallpaperReady = true;
     }
-  }
-  // Older saved selections do not have a preview field yet. Built-in images
-  // can use their bundled proxy immediately; custom images get a cached one.
-  function bundledPreview(path) {
-    // Qt.resolvedUrl resolves QML through Quickshell's qs: scheme. Saved
-    // wallpapers are filesystem paths, so compare filesystem paths instead.
-    const directory = Quickshell.shellDir.replace(/\/+$/, "").split("/");
-    directory.pop();
-    const base = directory.join("/") + "/wallpaper/";
-    const included = base + "included/";
-    if (!path.startsWith(included)) return "";
-    const filename = path.slice(included.length);
-    if (!filename || filename.includes("/")) return "";
-    return "file://" + (base + "previews/" + filename).split("/").map(encodeURIComponent).join("/");
-  }
-  function ensurePreview() {
-    if (wallpaperMode !== "custom" || wallpaperPreviewUrl || previewQuery.running) return;
-    previewQuery.requestedPath = wallpaperPath;
-    previewQuery.command = ["python3", Quickshell.shellDir + "/../wallpaper/control.py", "preview", wallpaperPath];
-    previewQuery.running = true;
-  }
-  Process {
-    id: previewQuery
-    property string requestedPath
-    stdout: StdioCollector {
-      onStreamFinished: {
-        try {
-          const result = JSON.parse(text);
-          if (root.wallpaperMode === "custom" && result.path === root.wallpaperPath)
-            root.wallpaperPreviewUrl = result.preview || "";
-        } catch (error) { console.warn("Wallpaper preview:", error); }
-      }
-    }
-    onExited: if (requestedPath !== root.wallpaperPath) root.ensurePreview()
   }
   Process {
     id: query

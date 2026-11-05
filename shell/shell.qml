@@ -11,9 +11,7 @@ import "settings/appearance" as Appearance
 import "settings/system" as System
 import "notifications" as Notifications
 import "updates" as Updates
-// Keep the wallpaper API and its implementation from the same checkout.
-// An independently installed QML module can lag behind a shell update.
-import "../wallpaper/desktop" as Wallpaper
+import Pond.Wallpaper as Wallpaper
 import Pond.System
 
 ShellRoot {
@@ -118,17 +116,13 @@ ShellRoot {
       id: output
       required property var modelData
       Wallpaper.Window {
-        id: wallpaper
         screen: modelData
-        configured: Appearance.State.wallpaperReady
-        previewSource: Appearance.State.wallpaperPreviewUrl
         custom: Appearance.State.wallpaperMode === "custom"
         dimmed: Theme.translucent
         imageSource: Appearance.State.wallpaperUrl
       }
       Sidebar {
         id: sidebar
-        wallpaperSettled: wallpaper.settled
         screen: modelData
         expanded: root.expanded
         onToggleRequested: root.expanded = !root.expanded
