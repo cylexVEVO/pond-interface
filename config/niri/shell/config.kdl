@@ -1,32 +1,32 @@
 // Pond shell integration.
 // Put personal settings in ~/.config/niri/cfg/*.kdl. Don't modify this file.
 
-spawn-sh-at-startup "qs -c pond-shell"
+spawn-at-startup "qs" "-p" "/usr/share/pond-interface/shell"
 
 binds {
     // These are defaults. Personal keybind choices go in ~/.config/niri/cfg/keybinds.kdl
     Mod+Space                           repeat=false hotkey-overlay-title="Open Launcher" { spawn "/usr/bin/vicinae" "toggle"; }
     Mod+V                               repeat=false hotkey-overlay-title="Open Clipboard History" { spawn "/usr/bin/vicinae" "vicinae://launch/clipboard/history?toggle=true"; }
     Mod+K                               hotkey-overlay-title="Switch Keyboard Language" { switch-layout "next"; }
-    Mod+L                               hotkey-overlay-title="Lock Screen" { spawn "qs" "-c" "pond-shell" "ipc" "call" "session" "lock"; }
+    Mod+L                               hotkey-overlay-title="Lock Screen" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "session" "lock"; }
 
-    Mod+N                               repeat=false hotkey-overlay-title="Toggle Notifications and Calendar" { spawn "qs" "-c" "pond-shell" "ipc" "call" "notifications" "toggle"; }
+    Mod+N                               repeat=false hotkey-overlay-title="Toggle Notifications and Calendar" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "notifications" "toggle"; }
 
-    Mod+Slash                           hotkey-overlay-title="Open Keyboard Shortcuts" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "open" "shortcuts"; }
+    Mod+Slash                           hotkey-overlay-title="Open Keyboard Shortcuts" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "settings" "open" "shortcuts"; }
 
     // ─── Media Controls ───
-    XF86AudioRaiseVolume                allow-when-locked=true hotkey-overlay-title="Raise Volume" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "increase"; }
-    XF86AudioLowerVolume                allow-when-locked=true hotkey-overlay-title="Lower Volume" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "decrease"; }
-    XF86AudioMute                       repeat=false allow-when-locked=true hotkey-overlay-title="Mute Output" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "muteOutput"; }
-    XF86AudioMicMute                    repeat=false allow-when-locked=true hotkey-overlay-title="Mute Microphone" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "muteInput"; }
-    XF86AudioNext                       repeat=false allow-when-locked=true hotkey-overlay-title="Next Track" { spawn "qs" "-c" "pond-shell" "ipc" "call" "media" "next"; }
-    XF86AudioPrev                       repeat=false allow-when-locked=true hotkey-overlay-title="Previous Track" { spawn "qs" "-c" "pond-shell" "ipc" "call" "media" "previous"; }
-    XF86AudioPlay                       repeat=false allow-when-locked=true hotkey-overlay-title="Play or Pause Media" { spawn "qs" "-c" "pond-shell" "ipc" "call" "media" "playPause"; }
-    XF86AudioPause                      repeat=false allow-when-locked=true hotkey-overlay-title="Play or Pause Media" { spawn "qs" "-c" "pond-shell" "ipc" "call" "media" "playPause"; }
+    XF86AudioRaiseVolume                allow-when-locked=true hotkey-overlay-title="Raise Volume" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "volume" "increase"; }
+    XF86AudioLowerVolume                allow-when-locked=true hotkey-overlay-title="Lower Volume" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "volume" "decrease"; }
+    XF86AudioMute                       repeat=false allow-when-locked=true hotkey-overlay-title="Mute Output" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "volume" "muteOutput"; }
+    XF86AudioMicMute                    repeat=false allow-when-locked=true hotkey-overlay-title="Mute Microphone" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "volume" "muteInput"; }
+    XF86AudioNext                       repeat=false allow-when-locked=true hotkey-overlay-title="Next Track" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "media" "next"; }
+    XF86AudioPrev                       repeat=false allow-when-locked=true hotkey-overlay-title="Previous Track" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "media" "previous"; }
+    XF86AudioPlay                       repeat=false allow-when-locked=true hotkey-overlay-title="Play or Pause Media" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "media" "playPause"; }
+    XF86AudioPause                      repeat=false allow-when-locked=true hotkey-overlay-title="Play or Pause Media" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "media" "playPause"; }
 
     // ─── Brightness Controls ───
-    XF86MonBrightnessUp                 allow-when-locked=true hotkey-overlay-title="Increase Brightness" { spawn "qs" "-c" "pond-shell" "ipc" "call" "brightness" "increase"; }
-    XF86MonBrightnessDown               allow-when-locked=true hotkey-overlay-title="Decrease Brightness" { spawn "qs" "-c" "pond-shell" "ipc" "call" "brightness" "decrease"; }
+    XF86MonBrightnessUp                 allow-when-locked=true hotkey-overlay-title="Increase Brightness" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "brightness" "increase"; }
+    XF86MonBrightnessDown               allow-when-locked=true hotkey-overlay-title="Decrease Brightness" { spawn "qs" "-p" "/usr/share/pond-interface/shell" "ipc" "call" "brightness" "decrease"; }
 }
 
 cursor {

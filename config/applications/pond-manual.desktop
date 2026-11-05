@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Application
 Name=Manual
-Exec=qs -c pond-shell ipc call manual open
+Exec=qs -p /usr/share/pond-interface/shell ipc call manual open
 Icon=/usr/share/pond-interface/shell/assets/manual/book.svg

@@ -11,7 +11,9 @@ import "settings/appearance" as Appearance
 import "settings/system" as System
 import "notifications" as Notifications
 import "updates" as Updates
-import Pond.Wallpaper as Wallpaper
+// Keep the wallpaper API and its implementation from the same checkout.
+// An independently installed QML module can lag behind a shell update.
+import "../wallpaper/desktop" as Wallpaper
 import Pond.System
 
 ShellRoot {
