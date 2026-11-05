@@ -20,3 +20,16 @@ Manual validation in a graphical session:
 
 The dialog requires a live Polkit service and Wayland session for integration
 validation; it cannot be validated by a static QML check alone.
+
+Fingerprint authentication is enabled by rerunning **Set up fingerprint login**
+in Settings → System → Fingerprints. Setup adds the fingerprint PAM rule to
+Polkit's existing policy, backing it up as /etc/pam.d/polkit-1.pond-backup.
+Vendor policies in /usr/lib/pam.d or /usr/share/pam are copied into /etc/pam.d
+when needed. Missing or custom fingerprint policies require manual review.
+The existing password and account rules are retained. Polkit remains responsible
+for authorization; the popup never approves requests using a separate scan.
+
+With an enrolled finger, trigger a new administrative request and follow the
+reader prompt. After three failed scans or the 30-second timeout, the existing
+password flow takes over. Check successful scans, failed scans, password fallback,
+cancellation during scanning, and switching identities on a machine with a reader.

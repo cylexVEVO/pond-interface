@@ -112,6 +112,16 @@ Scope {
             font.family: Shell.Theme.fontFamily
             font.pixelSize: 13
           }
+          Text {
+            width: parent.width
+            visible: window.flow && !window.flow.isResponseRequired
+            text: "If prompted, touch your fingerprint reader. Password entry follows if the scan times out or fails."
+            wrapMode: Text.Wrap
+            color: Shell.Theme.colors.text
+            opacity: 0.55
+            font.family: Shell.Theme.fontFamily
+            font.pixelSize: 12
+          }
           Row {
             spacing: 8
             Shell.ActionButton {

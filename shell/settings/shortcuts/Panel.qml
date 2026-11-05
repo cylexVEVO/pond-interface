@@ -55,24 +55,32 @@ Settings.Modal {
     const parts = String(bind.key).split("+");
     const key = parts[parts.length - 1];
     return {
-      bind: bind, label: label,
+      bind: bind, label: label, category: Shortcuts.State.category(bind),
       mods: parts.slice(0, -1).map(part => Shortcuts.State.order.find(mod =>
           mod.toUpperCase() === part.toUpperCase()) || part).sort(),
       keys: [Shortcuts.State.chipText(key), key.toLowerCase()],
       text: (label + " " + bind.key + " " + bind.action + " "
-          + Shortcuts.State.chipsText(bind)).toLowerCase()
+          + Shortcuts.State.chipsText(bind) + " " + Shortcuts.State.category(bind)).toLowerCase()
     };
   })
-  readonly property var personal: entries.filter(row => row.bind.custom)
-  readonly property var stock: entries.filter(row => !row.bind.custom)
-  // Headers only earn their space once there is something to separate.
-  readonly property var grouped: personal.length === 0 ? stock
-      : [{ header: "Added by you" }].concat(personal, [{ header: "Built in" }], stock)
+  readonly property var grouped: groupEntries(entries)
   readonly property var rows: {
     const words = query.split(/\s+/).filter(word => word !== "");
     if (words.length === 0) return grouped;
-    const pool = personal.concat(stock);
-    return chordMatches(words, pool) || pool.filter(row => words.every(word => row.text.includes(word)));
+    const matches = chordMatches(words, entries)
+        || entries.filter(row => words.every(word => row.text.includes(word)));
+    return groupEntries(matches);
+  }
+
+  function groupEntries(pool) {
+    const names = ["Added by you"].concat(Shortcuts.State.categories.map(entry => entry[0]), ["Other"]);
+    const result = [];
+    for (const name of names) {
+      const members = pool.filter(row => row.category === name)
+          .sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase()));
+      if (members.length > 0) result.push({ header: name }, ...members);
+    }
+    return result;
   }
 
   // "spr c" means exactly Mod+C, not every row mentioning a "c"; "spr"

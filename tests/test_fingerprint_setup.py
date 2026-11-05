@@ -26,11 +26,14 @@ class SetupTests(unittest.TestCase):
     def test_setup_is_repeatable_and_keeps_backup(self):
         with tempfile.TemporaryDirectory() as directory:
             pam = Path(directory)
+            (pam / 'polkit-1').write_text('auth include system-auth\naccount include system-auth\n')
             original = 'auth include system-login\naccount include system-login\n'
             (pam / 'sddm').write_text(original)
             with patch.object(setup, 'PAM', pam), patch.object(setup.os, 'geteuid', return_value=0), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.subprocess, 'run'):
                 setup.setup()
                 setup.setup()
+            self.assertEqual((pam / 'polkit-1').read_text(), setup.LOGIN + 'auth include system-auth\naccount include system-auth\n')
+            self.assertEqual((pam / 'polkit-1.pond-backup').read_text(), 'auth include system-auth\naccount include system-auth\n')
             self.assertEqual((pam / 'sddm.pond-backup').read_text(), original)
             self.assertEqual((pam / 'sddm').read_text().count(setup.LOGIN), 1)
             self.assertEqual((pam / 'pond-fingerprint').read_text(), setup.LOCK)
@@ -39,6 +42,7 @@ class SetupTests(unittest.TestCase):
     def test_package_failure_does_not_change_pam(self):
         with tempfile.TemporaryDirectory() as directory:
             pam = Path(directory)
+            (pam / 'polkit-1').write_text('auth include system-auth\naccount include system-auth\n')
             original = 'auth include system-login\n'
             (pam / 'sddm').write_text(original)
             with patch.object(setup, 'PAM', pam), patch.object(setup.os, 'geteuid', return_value=0), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.subprocess, 'run', side_effect=RuntimeError('failed')):
@@ -106,6 +110,7 @@ class SetupTests(unittest.TestCase):
     def test_status_requires_current_etc_lock_pam(self):
         with tempfile.TemporaryDirectory() as directory:
             pam = Path(directory)
+            (pam / 'polkit-1').write_text('auth include system-auth\naccount include system-auth\n')
             (pam / 'pond-fingerprint').write_text('auth required pam_fprintd.so\naccount required pam_unix.so\n')
             with patch.object(setup, 'PAM', pam), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
                 result = setup.status()
@@ -117,8 +122,10 @@ class SetupTests(unittest.TestCase):
     def test_status_ready_when_etc_matches(self):
         with tempfile.TemporaryDirectory() as directory:
             pam = Path(directory)
+            (pam / 'polkit-1').write_text('auth include system-auth\naccount include system-auth\n')
             (pam / 'pond-fingerprint').write_text(setup.LOCK)
             (pam / 'pond-password').write_text(setup.PASSWORD)
+            (pam / 'polkit-1').write_text(setup.LOGIN + 'auth include system-auth\n')
             with patch.object(setup, 'PAM', pam), patch.object(setup, 'packages', return_value=['installer']), patch.object(setup.shutil, 'which', return_value='/usr/bin/tool'), patch.object(Path, 'is_file', return_value=True), patch.object(Path, 'glob', return_value=[Path('/usr/lib/security/pam_fprintd.so')]):
                 result = setup.status()
             self.assertEqual(result['missing'], [])

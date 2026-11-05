@@ -34,9 +34,9 @@ def packages():
     return None
 
 
-def login_config(text):
+def login_config(text, service='SDDM'):
     if any('pam_fprintd.so' in line.split('#', 1)[0] for line in text.splitlines()):
-        raise ValueError('SDDM already has custom fingerprint rules; review them manually.')
+        raise ValueError(f'{service} already has custom fingerprint rules; review them manually.')
     # Preserve initial security checks; insert before the first ordinary auth rule.
     lines = text.splitlines(keepends=True)
     for i, line in enumerate(lines):
@@ -46,13 +46,23 @@ def login_config(text):
                 continue
             lines.insert(i, LOGIN)
             return ''.join(lines)
-    raise ValueError('Unrecognized SDDM PAM configuration; no changes made.')
+    raise ValueError(f'Unrecognized {service} PAM configuration; no changes made.')
 
 
 def read(path):
     if path.is_symlink():
         raise ValueError(f'Refusing to replace symlink: {path}')
     return path.read_text() if path.exists() else ''
+
+
+
+def polkit_config():
+    # PAM also ships vendor defaults outside /etc on modern distributions.
+    for path in (PAM / 'polkit-1', Path('/usr/lib/pam.d/polkit-1'),
+                 Path('/usr/share/pam/polkit-1')):
+        if path.exists():
+            return read(path)
+    return ''
 
 
 def status():
@@ -71,6 +81,8 @@ def status():
     sddm = read(PAM / 'sddm')
     if sddm and LOGIN not in sddm.splitlines(keepends=True):
         missing.append('SDDM configuration')
+    if LOGIN not in polkit_config().splitlines(keepends=True):
+        missing.append('Polkit configuration')
     release = distribution()
     system = release.get('PRETTY_NAME', release.get('ID', 'Unknown Linux distribution'))
     command = packages()
@@ -117,9 +129,12 @@ def setup():
     old_password = read(PAM / 'pond-password')
     old_lock = read(PAM / 'pond-fingerprint')
     old_login = read(PAM / 'sddm')
+    old_polkit = read(PAM / 'polkit-1')
+    effective_polkit = polkit_config()
+    new_polkit = effective_polkit if LOGIN in effective_polkit.splitlines(keepends=True) else login_config(effective_polkit, 'Polkit')
     new_login = old_login if not old_login or LOGIN in old_login.splitlines(keepends=True) else login_config(old_login)
     # Validate all files before package installation or PAM changes.
-    for name, old in (('pond-fingerprint', old_lock), ('pond-password', old_password), ('sddm', old_login)):
+    for name, old in (('pond-fingerprint', old_lock), ('pond-password', old_password), ('sddm', old_login), ('polkit-1', effective_polkit)):
         backup = PAM / (name + '.pond-backup')
         if old and not backup.exists():
             read(backup)
@@ -128,8 +143,10 @@ def setup():
     print('Installing fingerprint support…', flush=True)
     subprocess.run(command, check=True, env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'DEBIAN_FRONTEND': 'noninteractive', 'LC_ALL': 'C'})
     # A package manager may have modified PAM; never overwrite those changes.
-    if read(PAM / 'sddm') != old_login or read(PAM / 'pond-fingerprint') != old_lock or read(PAM / 'pond-password') != old_password:
+    if read(PAM / 'polkit-1') != old_polkit or polkit_config() != effective_polkit or read(PAM / 'sddm') != old_login or read(PAM / 'pond-fingerprint') != old_lock or read(PAM / 'pond-password') != old_password:
         raise RuntimeError('PAM changed during installation. Run setup again to recheck it.')
+    if new_polkit != old_polkit:
+        atomic_write(PAM / 'polkit-1', new_polkit)
     atomic_write(PAM / 'pond-password', PASSWORD)
     atomic_write(PAM / 'pond-fingerprint', LOCK)
     if new_login != old_login:

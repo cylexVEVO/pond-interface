@@ -185,6 +185,123 @@ Singleton {
         + (rest ? " " + rest : "");
   }
 
+  readonly property var categories: [
+    [
+      "Applications",
+      [
+        "vicinae",
+        "kitty",
+        "nautilus",
+        "Open Launcher",
+        "Clipboard",
+        "Terminal",
+        "File Manager"
+      ]
+    ],
+    [
+      "Shell",
+      [
+        "sidebar",
+        "settings",
+        "notifications",
+        "Switch Keyboard",
+        "Lock Screen",
+        "switch-layout",
+        "lockscreen",
+        "Toggle Sidebar",
+        "Toggle Settings",
+        "Display Settings"
+      ]
+    ],
+    [
+      "Media",
+      [
+        "volume",
+        "media",
+        "Audio",
+        "brightness",
+        "Volume Up",
+        "Volume Down",
+        "Mute",
+        "Track",
+        "Play / Pause",
+        "Brightness"
+      ]
+    ],
+    [
+      "Windows",
+      [
+        "close-window",
+        "focus-column",
+        "focus-window",
+        "move-column",
+        "move-window",
+        "focus-monitor",
+        "move-column-to-monitor",
+        "expand-column",
+        "center-column",
+        "center-visible",
+        "set-column-width",
+        "set-window-height",
+        "toggle-window-floating",
+        "fullscreen",
+        "toggle-column-tabbed",
+        "Close Window",
+        "Focus Column",
+        "Focus Window",
+        "Move Column",
+        "Move Window",
+        "Focus Monitor",
+        "Floating",
+        "Fullscreen",
+        "Tabbed",
+        "Column Width",
+        "Window Height",
+        "Center"
+      ]
+    ],
+    [
+      "Workspaces",
+      [
+        "focus-workspace",
+        "move-column-to-workspace",
+        "workspace-previous",
+        "toggle-overview",
+        "Focus Workspace",
+        "Toggle Overview"
+      ]
+    ],
+    [
+      "Screenshots",
+      [
+        "screenshot",
+        "Screenshot"
+      ]
+    ],
+    [
+      "System",
+      [
+        "hotkey-overlay",
+        "keyboard-shortcuts-inhibit",
+        "quit",
+        "power-off",
+        "Hotkey Overlay",
+        "Shortcuts Inhibit",
+        "Quit",
+        "Power Off"
+      ]
+    ]
+  ]
+
+  function category(bind) {
+    if (bind.custom) return "Added by you";
+    const text = (label(bind) + " " + bind.action).toLowerCase();
+    for (const entry of categories) {
+      if (entry[1].some(needle => text.includes(needle.toLowerCase()))) return entry[0];
+    }
+    return "Other";
+  }
+
   function newShortcut() {
     editing = null;
     error = "";
