@@ -95,7 +95,7 @@ Item {
 
             width: Notifications.Style.summaryIconSize
             height: Notifications.Style.summaryIconSize
-            source: modelData.iconSource || ""
+            source: Notifications.State.iconSource(modelData.notification)
             asynchronous: true
             smooth: true
             opacity: index === 0 ? 1 : Notifications.Style.secondaryIconOpacity

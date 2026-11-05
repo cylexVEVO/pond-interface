@@ -115,6 +115,61 @@ Item {
         root.setProperty("requested", True)
         self.assertEqual(root.property("loaded").property("retainedValue"), 91)
 
+    def test_panel_preload_open_close_geometry_and_retention(self):
+        Path(self.temp.name, "Window.qml").write_text('''import QtQuick
+Item {
+    id: panel
+    width: 336
+    height: 122
+    property bool opened: false
+    property bool closing: false
+    visible: opened || closing
+    property int openCount: 0
+    readonly property QtObject blurRegion: QtObject { function changed() {} }
+    function open() { closing = false; opened = true; openCount++; }
+    function closeAll() { if (opened) { closing = true; opened = false; } }
+}
+''')
+        shell = (Path(__file__).resolve().parents[1] / "shell").as_uri()
+        self.component.setData(('''import QtQuick
+import "%s" as Shell
+Item {
+    width: 1000; height: 800
+    readonly property bool settled: loader.settled
+    readonly property bool opened: loader.opened
+    readonly property bool presented: loader.presented
+    readonly property var loaded: loader.item
+    readonly property real panelWidth: loader.width
+    readonly property real panelY: loader.y
+    function open() { loader.open(); }
+    function closeAll() { loader.closeAll(); }
+    Shell.DeferredPanel {
+        id: loader
+        preload: true
+        windowSource: Qt.resolvedUrl("Window.qml")
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 10
+    }
+}
+''' % shell).encode(), QUrl.fromLocalFile(str(Path(self.temp.name, "Host.qml"))))
+        root = self.create()
+        self.drain()
+        self.assertFalse(root.property("presented"))
+        self.assertEqual(root.property("panelWidth"), 336)
+        self.assertEqual(root.property("panelY"), 668)
+        root.open()
+        self.assertTrue(root.property("opened"))
+        self.assertTrue(root.property("presented"))
+        root.closeAll()
+        self.assertFalse(root.property("opened"))
+        self.assertTrue(root.property("presented"), "closing animation remains visible")
+        loaded = root.property("loaded")
+        loaded.setProperty("closing", False)
+        self.assertFalse(root.property("presented"))
+        root.open()
+        self.assertTrue(root.property("presented"))
+        self.assertEqual(loaded.property("openCount"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

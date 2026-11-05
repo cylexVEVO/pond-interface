@@ -8,7 +8,7 @@ import "../.." as Shell
 Settings.Modal {
   id: root
   objectName: "mousePanel"
-  title: "Mouse sensitivity"; closeLabel: "Back to System"; bodyTop: 92
+  title: "Mouse & trackpad"; closeLabel: "Back to System"; bodyTop: 92
   contentHeight: fields.height + 30
   property string naturalKey: "naturalTouchpad"
   onBackRequested: Settings.State.back()

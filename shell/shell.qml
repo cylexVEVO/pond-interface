@@ -146,7 +146,7 @@ ShellRoot {
       PanelDismissWindow { bar: sidebar }
       DeferredWindow {
         id: settingsWindow
-        preload: sidebar.firstFramePresented
+        preload: sidebar.panelsReady
         requested: Settings.State.opened && Settings.State.outputName === output.modelData.name
         windowSource: Qt.resolvedUrl("settings/Window.qml")
         initialProperties: ({menuScreen: Qt.binding(() => output.modelData)})

@@ -137,7 +137,6 @@ Singleton {
     id: portQuery
     command: ["pactl", "-f", "json", "list"]
     environment: ({ "LC_ALL": "C" })
-    running: true
     stdout: StdioCollector { onStreamFinished: root.receivePorts(text) }
   }
 }

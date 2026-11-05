@@ -20,6 +20,10 @@ Singleton {
   readonly property int notificationCount: historyNotifications.length
   property var live: ({})
   property bool historyWritable: false
+  property bool historyLoading: true
+  property bool historyDirty: false
+  property bool historyCleared: false
+  property var historyRemoved: ({})
 
   SystemClock {
     id: clock
@@ -31,30 +35,59 @@ Singleton {
     id: history
     path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
         + "/pond-interface/notifications.json"
-    blockLoading: true
     atomicWrites: true
     printErrors: false
+    onLoaded: if (root.historyLoading && !recover.running) root.restoreHistory(text())
+    onLoadFailed: error => {
+      if (!root.historyLoading) return;
+      if (error === FileViewError.FileNotFound) root.finishHistoryLoad([]);
+      else {
+        root.historyLoading = false;
+        console.warn("Loading notification history:", error);
+      }
+    }
     onSaveFailed: error => console.warn("Saving notification history:", error)
   }
 
-  Component.onCompleted: {
+  function restoreHistory(text) {
     try {
-      historyWritable = true;
-      historyNotifications = (JSON.parse(history.text() || "{}").notifications || []).slice(0, historyLimit);
+      const saved = JSON.parse(text || "{}").notifications || [];
+      if (!Array.isArray(saved)) throw new Error("Invalid notification history");
+      finishHistoryLoad(saved);
     } catch (error) {
-      historyWritable = false;
       // Preserve unreadable history before starting a fresh file.
       recover.command = ["mv", "--", history.path, history.path + ".unreadable-" + Date.now()];
       recover.running = true;
     }
   }
 
+  function finishHistoryLoad(saved) {
+    const dirty = historyDirty;
+    // Notifications can arrive, be dismissed, or be cleared while disk I/O is
+    // pending. Live state wins, and dismissed history must not reappear.
+    const seen = new Set(historyNotifications.map(n => n.id));
+    const restored = historyCleared ? [] : saved.filter(n => {
+      if (!n || !n.id || seen.has(n.id) || historyRemoved[n.id]) return false;
+      seen.add(n.id);
+      return true;
+    });
+    historyNotifications = historyNotifications.concat(restored).slice(0, historyLimit);
+    historyLoading = false;
+    historyWritable = true;
+    historyRemoved = ({});
+    if (dirty) save.restart();
+  }
+
   Process {
     id: recover
     onExited: code => {
-      root.historyWritable = code === 0;
-      if (root.historyWritable) save.restart();
-      else console.warn("Could not preserve unreadable notification history:", history.path);
+      if (code === 0) {
+        root.historyDirty = true;
+        root.finishHistoryLoad([]);
+      } else {
+        root.historyLoading = false;
+        console.warn("Could not preserve unreadable notification history:", history.path);
+      }
     }
   }
 
@@ -108,6 +141,7 @@ Singleton {
         const data = root.snapshot(notification, notificationId);
         root.activeNotifications = [data, ...root.activeNotifications.filter(n => n.id !== notificationId)];
         if (!notification.transient) {
+          if (root.historyLoading) root.historyDirty = true;
           const updated = [data, ...root.historyNotifications.filter(n => n.id !== notificationId)];
           root.historyNotifications = updated.slice(0, root.historyLimit);
           for (const removed of updated.slice(root.historyLimit)) root.remove(removed);
@@ -164,7 +198,7 @@ Singleton {
       result.push({
                     identity: key,
                     name: item.appName,
-                    iconSource: iconSource(item)
+                    notification: item
                   });
       if (result.length >= 5)
         break;
@@ -247,6 +281,10 @@ Singleton {
   function remove(notification) {
     if (!notification || !notification.id) return;
     const id = notification.id;
+    if (historyLoading) {
+      historyDirty = true;
+      historyRemoved[id] = true;
+    }
     if (transientId === id) transientId = "";
     historyNotifications = historyNotifications.filter(n => n.id !== id);
     activeNotifications = activeNotifications.filter(n => n.id !== id);
@@ -265,6 +303,10 @@ Singleton {
   }
 
   function clearAll() {
+    if (historyLoading) {
+      historyDirty = true;
+      historyCleared = true;
+    }
     for (const id of Object.keys(live))
       live[id]?.notification.dismiss();
     historyNotifications = [];

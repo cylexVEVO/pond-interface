@@ -106,7 +106,7 @@ Settings.Modal {
 
   function dismiss() {
     if (root.recordingKey !== "") root.stopRecording();
-    else Settings.State.close();
+    else Settings.State.back();
   }
 
   function activate(index) {

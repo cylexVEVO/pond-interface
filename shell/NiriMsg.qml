@@ -554,8 +554,9 @@ Singleton {
       const windowRecords = [];
 
       for (const w of wsWindows) {
-        const info = _appInfo(w.appId);
         const agent = _isAgent(w);
+        // Agent markers use state colors, never the terminal's app icon.
+        const info = agent ? {iconName: "", iconSource: ""} : _appInfo(w.appId);
         windowRecords.push({
           winId: w.id,
           iconName: info.iconName,

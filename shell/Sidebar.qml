@@ -5,7 +5,6 @@ import Quickshell.Wayland
 import "audio" as Audio
 import "bluetooth" as Bluetooth
 import "settings" as Settings
-import "wifi" as Wifi
 import "calendar" as Calendar
 import "media" as Media
 import "minimap" as Minimap
@@ -17,6 +16,7 @@ PanelWindow {
   id: root
   // Start optional UI work only after a frame has reached the compositor.
   property bool firstFramePresented: false
+  readonly property bool panelsReady: bluetoothPanel.settled
   Item {
     id: frameObserver
     Connections {
@@ -49,7 +49,7 @@ PanelWindow {
     const panel = panels[name];
     if (!panel) return;
     const wasOpen = panel.opened;
-    const wasVisible = Object.values(panels).some(item => item.visible);
+    const wasVisible = Object.values(panels).some(item => item.presented);
     dismissPanels();
     if (wasOpen) return;
     Settings.State.close();
@@ -117,13 +117,13 @@ PanelWindow {
     id: cardBlur
     regions: [timeCard.blurRegion, workspacesCard.blurRegion, mediaCard.blurRegion,
       installsCard.blurRegion, controls.blurRegion,
-      wifiPanel.blurRegion, audioPanel.blurRegion, bluetoothPanel.blurRegion]
+      wifiPanel.blurRegion, audioPanel.blurRegion, bluetoothPanel.blurRegion].filter(Boolean)
   }
   // Keep compositor resizes out of the card animation; only the input area shrinks.
   implicitWidth: Math.ceil(Math.max(Theme.sidebarOuterMargin + Theme.sidebarCardExpandedWidth + Theme.sidebarFadeWidth,
-      wifiPanel.visible ? panelX + wifiPanel.width + 67 : 0,
-      audioPanel.visible ? panelX + audioPanel.width + 67 : 0,
-      bluetoothPanel.visible ? panelX + bluetoothPanel.width + 67 : 0))
+      wifiPanel.presented ? panelX + wifiPanel.width + 67 : 0,
+      audioPanel.presented ? panelX + audioPanel.width + 67 : 0,
+      bluetoothPanel.presented ? panelX + bluetoothPanel.width + 67 : 0))
   mask: Region {
     width: root.panelOpen ? root.implicitWidth : Math.ceil(Theme.sidebarOuterMargin + Math.max(root.cardWidth,
         workspacesCard.width, mediaCard.width, controls.width) + 8)
@@ -170,6 +170,7 @@ PanelWindow {
 
     Minimap.Map {
       id: workspacesCard
+      preloadIconColors: root.firstFramePresented
       screen: root.screen
       collapseProgress: root.collapseProgress
       maximumHeight: Math.max(64,
@@ -216,24 +217,30 @@ PanelWindow {
     }
   }
 
-  Wifi.Panel {
+  DeferredPanel {
     id: wifiPanel
+    preload: audioPanel.settled
+    windowSource: Qt.resolvedUrl("wifi/Panel.qml")
     x: root.panelX
     z: 80
     anchors.bottom: parent.bottom
     anchors.bottomMargin: Theme.sidebarOuterMargin
   }
 
-  Audio.Panel {
+  DeferredPanel {
     id: audioPanel
+    preload: root.firstFramePresented
+    windowSource: Qt.resolvedUrl("audio/Panel.qml")
     x: root.panelX
     z: 80
     anchors.bottom: parent.bottom
     anchors.bottomMargin: Theme.sidebarOuterMargin
   }
 
-  Bluetooth.Panel {
+  DeferredPanel {
     id: bluetoothPanel
+    preload: wifiPanel.settled
+    windowSource: Qt.resolvedUrl("bluetooth/Panel.qml")
     x: root.panelX
     z: 80
     anchors.bottom: parent.bottom

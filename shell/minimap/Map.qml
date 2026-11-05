@@ -18,6 +18,7 @@ Shell.Card {
   signal focusRequested(int workspaceIndex)
   signal windowRequested(var windowId)
   signal addRequested(var workspaceId)
+  property bool preloadIconColors: false
 
   readonly property real expandedOpacity:
       collapseProgress < 0.56 ? 1 : 0
@@ -687,6 +688,7 @@ Shell.Card {
               delegate: Rectangle {
                 id: appDot
                 required property int index
+                property bool captured: false
                 readonly property string imageFile: Quickshell.env("XDG_RUNTIME_DIR")
                     + "/pond-icon-" + Quickshell.processId + "-" + Qt.md5(String(appDot)) + ".png"
                 width: 4
@@ -694,7 +696,7 @@ Shell.Card {
                 radius: 2
                 antialiasing: true
                 readonly property string dotState: collapsedWorkspace.windowItems[index].dotState || ""
-                color: dotState === "working" ? "#CBA6F7" : dotState === "unread" ? "#FF9F67"
+                color: dotState === "working" ? "#CBA6F7" : (dotState === "unread" || dotState === "attention") ? "#FF9F67"
                     : dotState === "read" ? "#CBE25B" : iconColor.colors[0] ?? "white"
 
                 // ColorQuantizer needs a file; theme icons use an image-provider URL.
@@ -704,8 +706,10 @@ Shell.Card {
                   height: 32
                   visible: false
                   asynchronous: true
-                  source: Quickshell.iconPath(collapsedWorkspace.windowItems[appDot.index].iconName,
-                      "application-x-executable")
+                  // Hidden compact dots used to render icons to disk during
+                  // startup, even for terminals with fixed status colors.
+                  source: root.preloadIconColors && appDot.dotState === ""
+                      ? collapsedWorkspace.windowItems[appDot.index].iconSource || "" : ""
                   readonly property bool ready: status === Image.Ready && Boolean(Window.window?.visible)
                   onReadyChanged: if (ready) Qt.callLater(capture)
                   onSourceChanged: {
@@ -717,8 +721,10 @@ Shell.Card {
                       return;
                     const requested = source.toString();
                     grabToImage(result => {
-                      if (source.toString() === requested && result.saveToFile(appDot.imageFile))
+                      if (source.toString() === requested && result.saveToFile(appDot.imageFile)) {
+                        appDot.captured = true;
                         iconColor.source = "file://" + appDot.imageFile;
+                      }
                     });
                   }
                 }
@@ -730,7 +736,7 @@ Shell.Card {
                 }
                 Component.onDestruction: {
                   colorSource.source = "";
-                  Quickshell.execDetached(["rm", "-f", imageFile]);
+                  if (captured) Quickshell.execDetached(["rm", "-f", imageFile]);
                 }
               }
             }
