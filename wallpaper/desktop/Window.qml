@@ -3,6 +3,8 @@ import Quickshell
 import Quickshell.Wayland
 
 PanelWindow {
+  property alias configured: background.configured
+  property alias previewSource: background.previewSource
   property alias custom: background.custom
   property alias dimmed: background.dimmed
   property alias imageSource: background.imageSource

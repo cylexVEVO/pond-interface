@@ -31,6 +31,8 @@ Item {
   Content {
     width: root.wallpaper.width
     height: root.wallpaper.height
+    configured: root.wallpaper.configured
+    previewSource: root.wallpaper.previewSource
     custom: root.wallpaper.custom
     dimmed: root.wallpaper.dimmed
     imageSource: root.wallpaper.imageSource

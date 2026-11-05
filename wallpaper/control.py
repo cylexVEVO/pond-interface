@@ -11,6 +11,7 @@ import tempfile
 
 from PyQt6.QtCore import QIODevice, QSaveFile, QSize, QStandardPaths
 from PyQt6.QtGui import QImageReader
+from preview import preview
 
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 THUMBNAILS = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "pond-interface/wallpapers"
@@ -136,11 +137,15 @@ def wallpaper(mode, path=""):
         selected = wallpaper_entry(path)
         if not selected:
             raise ValueError("Choose a readable image file")
-        state.update(mode=mode, path=selected["path"], url=selected["url"])
+        try:
+            preview_url = preview(selected["path"]).as_uri()
+        except (OSError, ValueError):
+            preview_url = ""  # A read-only cache must not prevent wallpaper selection.
+        state.update(mode=mode, path=selected["path"], url=selected["url"], preview=preview_url)
         if selected["path"] not in state["imports"]:
             state["imports"].insert(0, selected["path"])
     elif mode == "dynamic":
-        state.update(mode=mode, path="", url="")
+        state.update(mode=mode, path="", url="", preview="")
     else:
         raise ValueError("Unknown wallpaper mode")
     atomic_write(CONFIG / "pond-interface/wallpaper.json", json.dumps(state) + "\n")
@@ -162,7 +167,8 @@ def pick_wallpaper():
 def main():
     try:
         action, *args = sys.argv[1:]
-        commands = {"list": wallpapers, "set": wallpaper, "pick": pick_wallpaper}
+        commands = {"list": wallpapers, "set": wallpaper, "pick": pick_wallpaper,
+                    "preview": lambda path: {"path": path, "preview": preview(path).as_uri()}}
         print(json.dumps(commands[action](*args)))
     except Exception as error:
         print(json.dumps({"error": str(error)}))

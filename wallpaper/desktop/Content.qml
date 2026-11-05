@@ -3,11 +3,13 @@ import Pond.Daylight
 
 Rectangle {
   id: root
+  property bool configured: true
   property bool custom: false
   property bool dimmed: false
   property url imageSource: ""
-  property alias now: sky.now
-  property alias live: sky.live
+  property url previewSource: ""
+  property date now: new Date()
+  property bool live: true
   color: "#0b101c"
   layer.enabled: root.dimmed
   layer.format: ShaderEffectSource.RGBA16F
@@ -19,18 +21,23 @@ Rectangle {
     ShaderEffect { fragmentShader: Qt.resolvedUrl("dither.frag.qsb") }
   }
 
-  Sky {
-    id: sky
+  // Static wallpaper startup should never initialize the daylight shader.
+  Loader {
     anchors.fill: parent
-    visible: !root.custom
+    active: root.configured && !root.custom
+    sourceComponent: Sky { live: false; now: root.now }
   }
-  Image {
-    objectName: "wallpaperImage"
+  Timer {
+    interval: 30000
+    repeat: true
+    running: root.configured && !root.custom && root.live && root.visible
+    onRunningChanged: if (running) root.now = new Date()
+    onTriggered: root.now = new Date()
+  }
+  ProgressiveImage {
     anchors.fill: parent
-    source: root.custom ? root.imageSource : ""
-    sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
-    fillMode: Image.PreserveAspectCrop
-    asynchronous: true
+    source: root.configured && root.custom ? root.imageSource : ""
+    previewSource: root.configured && root.custom ? root.previewSource : ""
   }
   Rectangle {
     visible: root.dimmed

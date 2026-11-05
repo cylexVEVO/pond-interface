@@ -117,6 +117,8 @@ ShellRoot {
       required property var modelData
       Wallpaper.Window {
         screen: modelData
+        configured: Appearance.State.wallpaperReady
+        previewSource: Appearance.State.wallpaperPreviewUrl
         custom: Appearance.State.wallpaperMode === "custom"
         dimmed: Theme.translucent
         imageSource: Appearance.State.wallpaperUrl
