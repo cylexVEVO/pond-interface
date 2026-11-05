@@ -25,6 +25,7 @@ PanelWindow {
   }
 
   onVisibleChanged: if (visible) card.forceActiveFocus();
+  Component.onCompleted: if (visible) card.forceActiveFocus();
 
   MouseArea {
     anchors.fill: parent

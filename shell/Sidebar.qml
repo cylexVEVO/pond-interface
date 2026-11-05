@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import Quickshell.Wayland
 import "audio" as Audio
@@ -14,6 +15,17 @@ import Pond.Screenshot as Screenshot
 
 PanelWindow {
   id: root
+  // Start optional UI work only after a frame has reached the compositor.
+  property bool firstFramePresented: false
+  Item {
+    id: frameObserver
+    Connections {
+      target: frameObserver.Window.window
+      enabled: !root.firstFramePresented
+      function onFrameSwapped() { root.firstFramePresented = true; }
+    }
+  }
+
   required property bool expanded
   property string popup: ""
   property real collapseProgress: expanded ? 0 : 1

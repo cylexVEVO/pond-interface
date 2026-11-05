@@ -161,6 +161,7 @@ PanelWindow {
       beginClose();
   }
   onCardsOpenChanged: if (cardsOpen) beginOpen()
+  Component.onCompleted: if (targetOpen) beginOpen()
   Connections {
     target: Settings.State
     function onPageChanged() {

@@ -3,18 +3,24 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Services.SystemTray
 import "authentication" as Authentication
 import "battery" as Battery
 import "settings" as Settings
 import "settings/appearance" as Appearance
 import "settings/system" as System
 import "notifications" as Notifications
+import "updates" as Updates
 import Pond.Wallpaper as Wallpaper
 import Pond.System
 
 ShellRoot {
   id: root
   property bool expanded: true
+
+  // Register the tray host even before its settings UI is opened.
+  readonly property var trayItems: SystemTray.items
+  readonly property string updateStatus: Updates.State.status
 
   Shortcuts {}
   // Load the optional Polkit module without making it a shell dependency.
@@ -107,6 +113,7 @@ ShellRoot {
   Variants {
     model: Quickshell.screens
     delegate: Scope {
+      id: output
       required property var modelData
       Wallpaper.Window {
         screen: modelData
@@ -121,11 +128,29 @@ ShellRoot {
         onToggleRequested: root.expanded = !root.expanded
       }
       Notifications.ToastWindow { id: toast; bar: sidebar }
-      Notifications.CenterWindow { bar: sidebar }
-      Battery.Window { bar: sidebar }
+      DeferredWindow {
+        id: notificationCenter
+        preload: settingsWindow.settled
+        requested: Notifications.State.panelOpen
+            && Notifications.State.panelOutputName === output.modelData.name
+        windowSource: Qt.resolvedUrl("notifications/CenterWindow.qml")
+        initialProperties: ({bar: sidebar})
+      }
+      DeferredWindow {
+        preload: notificationCenter.settled
+        requested: sidebar.popup === "battery"
+        windowSource: Qt.resolvedUrl("battery/Window.qml")
+        initialProperties: ({bar: sidebar})
+      }
       Battery.Notification { bar: sidebar; above: toast }
       PanelDismissWindow { bar: sidebar }
-      Settings.Window { menuScreen: modelData }
+      DeferredWindow {
+        id: settingsWindow
+        preload: sidebar.firstFramePresented
+        requested: Settings.State.opened && Settings.State.outputName === output.modelData.name
+        windowSource: Qt.resolvedUrl("settings/Window.qml")
+        initialProperties: ({menuScreen: Qt.binding(() => output.modelData)})
+      }
     }
   }
 }

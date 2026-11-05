@@ -29,7 +29,13 @@ Singleton {
     interval: 12 * 60 * 60 * 1000
     running: true
     repeat: true
-    triggeredOnStart: true
+    onTriggered: check.running = true
+  }
+
+  // Package discovery is not needed to draw the shell's first frame.
+  Timer {
+    interval: 30000
+    running: true
     onTriggered: check.running = true
   }
 

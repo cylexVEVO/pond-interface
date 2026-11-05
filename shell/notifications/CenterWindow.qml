@@ -62,7 +62,10 @@ PanelWindow {
     regions: [root.bar.mask]
   }
 
-  onRequestedChanged: if (requested) {
+  Component.onCompleted: if (requested) focusCalendar()
+  onRequestedChanged: if (requested) focusCalendar()
+
+  function focusCalendar() {
     calendar.goToday();
     calendar.forceActiveFocus();
   }
