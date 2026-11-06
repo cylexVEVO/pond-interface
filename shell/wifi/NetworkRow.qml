@@ -5,6 +5,8 @@ Item {
   id: root
   property var network: ({})
   property bool interactive: true
+  property bool busy: false
+  signal ethernetToggled(bool checked)
   readonly property bool canDisconnect: !!network.connected && !network.wired
   signal rowClicked
   signal detailsRequested
@@ -19,7 +21,7 @@ Item {
   }
   MouseArea {
     anchors.fill: parent
-    enabled: root.interactive
+    enabled: root.interactive && !root.network.wired
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     cursorShape: Qt.PointingHandCursor
     onClicked: mouse => {
@@ -45,7 +47,7 @@ Item {
     x: 40
     anchors.verticalCenter: parent.verticalCenter
     anchors.verticalCenterOffset: root.network.wired ? -8 : 0
-    width: (root.canDisconnect ? 202 : 264) - x
+    width: (root.canDisconnect ? 202 : root.network.wired ? 232 : 264) - x
     elide: Text.ElideRight
     text: root.network.wired ? "Ethernet" : String(root.network.ssid || "")
     color: Theme.colors.text
@@ -57,9 +59,9 @@ Item {
     visible: !!root.network.wired
     x: 40
     y: 25
-    width: parent.width - x - 12
+    width: 232 - x
     elide: Text.ElideRight
-    text: "Connected" + (root.network.device ? " · " + root.network.device : "")
+    text: (root.network.connected ? "Connected" : "Disconnected") + (root.network.device ? " · " + root.network.device : "")
     color: Theme.colors.text
     opacity: 0.5
     font.family: Theme.fontFamily
@@ -72,6 +74,18 @@ Item {
     width: 16
     height: 16
     source: Qt.resolvedUrl("../assets/wifi/lock.svg")
+  }
+
+  Toggle {
+    visible: !!root.network.wired
+    x: 238
+    anchors.verticalCenter: parent.verticalCenter
+    accessibleName: "Ethernet " + (root.network.device || "")
+    trackAlpha: PanelStyle.drawerToggleAlpha
+    checked: !!root.network.connected
+    enabled: root.interactive
+    busy: root.busy
+    onToggled: checked => root.ethernetToggled(checked)
   }
 
   Rectangle {
@@ -105,5 +119,5 @@ Item {
       onClicked: root.disconnectClicked()
     }
   }
-  HoverHandler { id: hover; enabled: root.interactive; cursorShape: Qt.PointingHandCursor }
+  HoverHandler { id: hover; enabled: root.interactive && !root.network.wired; cursorShape: Qt.PointingHandCursor }
 }

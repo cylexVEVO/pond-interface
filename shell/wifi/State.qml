@@ -14,11 +14,11 @@ Singleton {
   readonly property bool enabled: Networking.wifiEnabled
   readonly property var adapters: Networking.devices.values.filter(d => d.type === DeviceType.Wifi)
   readonly property var adapter: adapters.find(d => d.connected) || adapters[0] || null
-  readonly property var connectedWiredAdapters: Networking.devices.values.filter(
-      d => d.type === DeviceType.Wired && d.connected)
+  readonly property var wiredAdapters: Networking.devices.values.filter(d => d.type === DeviceType.Wired)
+  readonly property var connectedWiredAdapters: wiredAdapters.filter(d => d.connected)
   readonly property bool wiredConnected: connectedWiredAdapters.length > 0
-  readonly property var wiredNetworks: connectedWiredAdapters.map(d => ({
-      name: d.network?.name || "Ethernet", device: d.name, wired: true, connected: true
+  readonly property var wiredNetworks: wiredAdapters.map(d => ({
+      name: d.network?.name || "Ethernet", device: d.name, wired: true, connected: d.connected
   }))
   readonly property bool wifiConnected: enabled && Networking.wifiHardwareEnabled
       && !!adapter && adapter.connected
@@ -103,6 +103,15 @@ Singleton {
     if (value >= 1e3)
       return (value / 1e3).toFixed(value >= 1e4 ? 0 : 1) + "Kb";
     return Math.round(value) + "b";
+  }
+
+  readonly property bool actionBusy: _actionSequenceActive
+
+  function setEthernetEnabled(deviceName, value) {
+    if (!wiredAdapters.some(d => d.name === deviceName))
+      return;
+    runAction("ethernet", ["/usr/bin/nmcli", "device",
+              value ? "connect" : "disconnect", deviceName], "");
   }
 
   function setWifiEnabled(value) {
@@ -239,7 +248,7 @@ Singleton {
     pendingSsid = ssid;
     phase = kind === "connect" ? "connecting" : "working";
     statusText = kind === "connect"
-        ? "Connecting to “" + ssid + "”…" : "Applying Wi-Fi change…";
+        ? "Connecting to “" + ssid + "”…" : "Applying network change…";
     actionProcess.command = commands[0];
     actionProcess.running = true;
   }
@@ -361,7 +370,7 @@ Singleton {
       root.phase = succeeded ? "complete" : "failed";
       if (succeeded) {
         root.statusText = root._actionKind === "connect"
-            ? "Connected to “" + root.pendingSsid + "”" : "Wi-Fi updated";
+            ? "Connected to “" + root.pendingSsid + "”" : "Network updated";
       } else if (root._actionKind === "connect") {
         if (root._passwordFailed)
           root.statusText = "Incorrect password";
@@ -374,7 +383,7 @@ Singleton {
         else
           root.statusText = "Connection failed";
       } else {
-        root.statusText = root._actionError || "Unable to update Wi-Fi";
+        root.statusText = root._actionError || "Unable to update network";
       }
       root.actionFinished(root._actionKind, succeeded, root.statusText);
       root.refreshDetails();

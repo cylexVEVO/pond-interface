@@ -40,7 +40,7 @@ CardStack {
   Connections {
     target: Wifi.State
     function onActionFinished(kind, success, message) {
-      if (!root.opened || kind === "toggle")
+      if (!root.opened || kind === "toggle" || kind === "ethernet")
         return;
       if (success && kind !== "disconnect") {
         closeDelay.interval = kind === "connect" ? 1500 : 420;

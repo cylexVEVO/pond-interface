@@ -7,6 +7,8 @@ DeviceList {
   id: root
   readonly property bool wifiAvailable: !!Wifi.State.adapter
   readonly property bool canAddNetwork: wifiAvailable && Wifi.State.enabled
+  message: Wifi.State.phase === "failed" && Wifi.State._actionKind === "ethernet"
+      ? Wifi.State.statusText : ""
   title: "Network"
   viewportHeight: 306
   devices: Wifi.State.wiredNetworks.concat(Wifi.State.enabled ? Wifi.State.networks : [])
@@ -25,7 +27,9 @@ DeviceList {
     required property var modelData
     width: PanelStyle.rowWidth
     network: modelData
-    interactive: root.interactive && !modelData.wired
+    interactive: root.interactive
+    busy: Wifi.State.actionBusy
+    onEthernetToggled: checked => Wifi.State.setEthernetEnabled(modelData.device, checked)
     onDisconnectClicked: Wifi.State.disconnect()
     onDetailsRequested: {
       if (modelData.connected || modelData.known)
