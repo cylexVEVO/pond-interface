@@ -109,17 +109,17 @@ Settings.Modal {
     x: 30; width: root.width - 60; spacing: 10
 
     Item {
-      width: parent.width; height: 28
+      width: parent.width; height: 41
       Text { anchors.verticalCenter: parent.verticalCenter; text: "Runs"; color: "#b3b3b3"; font.family: Shell.Theme.fontFamily; font.pixelSize: 13 }
-      Row {
-        anchors.right: parent.right; spacing: 6
-        Shortcuts.Choice {
-          label: "App"; selected: !root.shellCommand
-          onPicked: { root.shellCommand = false; commandInput.forceActiveFocus(); }
-        }
-        Shortcuts.Choice {
-          label: "Shell script"; selected: root.shellCommand
-          onPicked: { root.shellCommand = true; commandInput.forceActiveFocus(); }
+      Settings.Switcher {
+        objectName: "shortcutsCommandType"
+        anchors.right: parent.right
+        radius: 8
+        model: [{key: "app", label: "App", width: 64}, {key: "shell", label: "Shell script", width: 100}]
+        current: root.shellCommand ? "shell" : "app"
+        onSelected: key => {
+          root.shellCommand = key === "shell";
+          commandInput.forceActiveFocus();
         }
       }
     }
