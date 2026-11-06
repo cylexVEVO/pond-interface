@@ -6,6 +6,8 @@
 import json
 import re
 import sys
+import subprocess
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -15,6 +17,15 @@ USER_CONFIG = Path.home() / ".config/niri/config.kdl"
 USER_KEYBINDS = Path.home() / ".config/niri/cfg/keybinds.kdl"
 META = Path.home() / ".config/pond-interface/shortcuts.json"
 MANAGED_COMMENT = "    // ─── Pond shortcuts (managed by Settings → Keyboard shortcuts) ───"
+_staged = None
+
+
+def read_text(path):
+    if _staged is not None and path in _staged:
+        return _staged[path]
+    return path.read_text()
+
+
 MODS = ["MOD", "SHIFT", "CTRL", "ALT", "SUPER"]
 # niri has no unbind: a chord moved away from a read-only Pond default is
 # parked on a no-op that the hotkey overlay and this page both hide.
@@ -112,6 +123,8 @@ def clean_action(text, tokens, closing):
 
 def canonical(chord):
     # niri parses modifiers and keysyms case-insensitively.
+    if not re.fullmatch(r"[A-Za-z0-9_]+(?:\+[A-Za-z0-9_]+)*", chord):
+        return ""
     mods, key = [], ""
     for part in chord.split("+"):
         upper = part.upper()
@@ -121,6 +134,8 @@ def canonical(chord):
             return ""
         else:
             key = part.lower()
+    if not key:
+        return ""
     return "+".join(sorted(set(mods), key=lambda mod: MODS.index(mod.upper())) + [key])
 
 
@@ -130,7 +145,7 @@ def active_binds():
     binds = {}
     for path in config_files():
         try:
-            text = path.read_text()
+            text = read_text(path)
         except OSError:
             continue
         for bind in scan_binds(text):
@@ -164,7 +179,7 @@ def check_free(key, ignore=""):
 
 
 def user_text():
-    return USER_KEYBINDS.read_text() if USER_KEYBINDS.is_file() else DEFAULT_USER_KEYBINDS
+    return read_text(USER_KEYBINDS) if USER_KEYBINDS.is_file() or (_staged is not None and USER_KEYBINDS in _staged) else DEFAULT_USER_KEYBINDS
 
 
 def user_chords(text):
@@ -174,9 +189,9 @@ def user_chords(text):
         if tokens[first][0] != "binds" or opening is None or closing is None:
             continue
         for chord_first, chord_last, _, _ in kdl.nodes(tokens, opening + 1, closing):
-            start = text.rfind("\n", 0, tokens[chord_first][1]) + 1
-            end = text.find("\n", tokens[chord_last - 1][2])
-            yield tokens[chord_first], start, len(text) if end < 0 else end + 1
+            start = tokens[chord_first][1]
+            end = tokens[chord_last - 1][2]
+            yield tokens[chord_first], start, end
 
 
 def drop_line(text, key):
@@ -200,19 +215,26 @@ def append_line(text, line):
 
 
 def write_user(text):
+    if _staged is not None:
+        _staged[USER_KEYBINDS] = text
+        return
+    validate(text)
     USER_KEYBINDS.parent.mkdir(parents=True, exist_ok=True)
     kdl.atomic_write(USER_KEYBINDS, text)
 
 
 def custom_binds():
     try:
-        data = json.loads(META.read_text())
+        data = json.loads(read_text(META))
         return data if isinstance(data, list) else []
     except (OSError, ValueError):
         return []
 
 
 def store_binds(entries):
+    if _staged is not None:
+        _staged[META] = json.dumps(entries, indent=2) + "\n"
+        return
     META.parent.mkdir(parents=True, exist_ok=True)
     kdl.atomic_write(META, json.dumps(entries, indent=2) + "\n")
 
@@ -279,19 +301,48 @@ def rebind(old, new):
     return bind | {"key": new}
 
 
+def validate(text):
+    # Validate a private candidate, before niri's file watcher can see it.
+    with tempfile.TemporaryDirectory(prefix="pond-shortcuts-") as directory:
+        candidate = Path(directory) / "config.kdl"
+        candidate.write_text(text)
+        try:
+            result = subprocess.run(
+                ["niri", "validate", "--config", str(candidate)],
+                capture_output=True, text=True, timeout=15)
+        except FileNotFoundError:
+            raise ValueError("Cannot save shortcuts: niri is unavailable for validation.")
+        except subprocess.TimeoutExpired:
+            raise ValueError("Shortcut validation timed out; no changes were saved.")
+        if result.returncode:
+            raise ValueError("Shortcut configuration rejected by niri:\n" +
+                             (result.stderr or result.stdout).strip())
+
+
 def transaction(change):
-    # Every write restores both files if any step is refused, so a rejected
-    # edit never loses the existing bind.
-    snapshots = {path: path.read_text() if path.is_file() else None for path in (USER_KEYBINDS, META)}
+    global _staged
+    snapshots = {path: path.read_text() if path.is_file() else None
+                 for path in (USER_KEYBINDS, META)}
+    _staged = {}
+    written = []
     try:
-        return change()
+        result = change()
+        if USER_KEYBINDS in _staged:
+            validate(_staged[USER_KEYBINDS])
+        for path, text in _staged.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            kdl.atomic_write(path, text)
+            written.append(path)
+        return result
     except Exception:
-        for path, text in snapshots.items():
-            if text is None:
+        for path in reversed(written):
+            if snapshots[path] is None:
                 path.unlink(missing_ok=True)
             else:
-                kdl.atomic_write(path, text)
+                kdl.atomic_write(path, snapshots[path])
         raise
+    finally:
+        _staged = None
 
 
 def save(original, request):
