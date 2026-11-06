@@ -222,7 +222,6 @@ Settings.Modal {
         Column {
             width: parent.width; spacing: 16
             visible: root.setupState.ready && root.page === "list"
-            Copy { text: "Log in and unlock with a touch." }
             Rectangle {
                 visible: root.savedFingers.length === 0
                 width: parent.width; height: 126; radius: 16
@@ -243,7 +242,6 @@ Settings.Modal {
                         color: Shell.Theme.colors.settingsRow
                         Image { x: 18; anchors.verticalCenter: parent.verticalCenter; width: 28; height: 32; source: "fingerprint.svg" }
                         Text { x: 62; anchors.verticalCenter: parent.verticalCenter; text: root.fingerLabel(parent.modelData); color: Shell.Theme.colors.text; font.family: Shell.Theme.fontFamily; font.pixelSize: 15 }
-                        Text { anchors.right: parent.right; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: "Saved"; color: Shell.Theme.colors.text; opacity: 0.45; font.family: Shell.Theme.fontFamily; font.pixelSize: 12 }
                     }
                 }
             }
