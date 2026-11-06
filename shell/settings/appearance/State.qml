@@ -23,7 +23,8 @@ Singleton {
   signal keyboardBrightnessChanged(string outputName, real value)
   readonly property bool pickingWallpaper: picker.running
   readonly property bool busy: action.running || launcherTheme.running || picker.running
-  readonly property bool active: Settings.State.opened && Settings.State.page === "appearance"
+  readonly property bool active: Settings.State.opened
+      && (Settings.State.page === "appearance" || Settings.State.page === "display")
   readonly property bool wallpapersActive: Settings.State.opened && Settings.State.page === "wallpaper"
   readonly property bool brightnessAvailable: display.brightness !== undefined && display.brightness !== null
 
