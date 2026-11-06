@@ -342,7 +342,7 @@ Settings.Modal {
     Rectangle {
       objectName: "shortcutsSearch"
       x: 30; y: 82; width: root.width - 60; height: 51; radius: 12
-      color: search.activeFocus ? "#303030" : "#262626"
+      color: search.activeFocus && !clearHover.hovered ? Shell.PanelStyle.controlHover : Shell.PanelStyle.controlFill
       Text {
         x: 20; anchors.verticalCenter: parent.verticalCenter
         visible: !search.text; text: "Search by name or keys, like “spr c”"
@@ -385,7 +385,7 @@ Settings.Modal {
         x: parent.width - 46; anchors.verticalCenter: parent.verticalCenter
         width: 40; height: 40; radius: 4
         visible: !!search.text
-        color: clearHover.hovered ? "#303030" : "transparent"
+        color: clearHover.hovered ? Shell.PanelStyle.controlHover : "transparent"
         Accessible.role: Accessible.Button
         Accessible.name: "Clear search"
         Accessible.onPressAction: search.clear()
@@ -407,9 +407,7 @@ Settings.Modal {
       width: root.width - 60
       height: 50
       radius: 12
-      color: addHover.hovered ? "#262626" : "transparent"
-      border.width: 1
-      border.color: "#303030"
+      color: addHover.hovered ? Shell.PanelStyle.controlHover : Shell.Theme.colors.settingsRow
       Accessible.role: Accessible.Button
       Accessible.name: "Add shortcut"
       Accessible.onPressAction: Shortcuts.State.newShortcut()

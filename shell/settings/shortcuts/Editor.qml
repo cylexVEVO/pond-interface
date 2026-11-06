@@ -12,7 +12,9 @@ Settings.Modal {
   objectName: "shortcutsEditor"
   title: root.editing ? "Edit shortcut" : "New shortcut"
   bodyTop: 92
-  contentHeight: form.height + 24 + footerHeight
+  contentHeight: form.height + 24
+  implicitHeight: Math.min(contentHeight + bodyTop + footerHeight, availableHeight)
+  scrollItem.height: Math.max(0, height - bodyTop - footerHeight)
   onBackRequested: Settings.State.back()
   Keys.onEscapePressed: Settings.State.back()
   // The command is what people come here to type.
@@ -124,7 +126,7 @@ Settings.Modal {
     Rectangle {
       objectName: "shortcutsCommandInput"
       width: parent.width; height: 51; radius: 12
-      color: commandInput.activeFocus ? "#303030" : "#262626"
+      color: commandInput.activeFocus ? Shell.PanelStyle.controlHover : Shell.PanelStyle.controlFill
       Text {
         x: 20; width: parent.width - 40; anchors.verticalCenter: parent.verticalCenter
         visible: !commandInput.text; elide: Text.ElideRight
@@ -163,7 +165,7 @@ Settings.Modal {
       id: chordBox
       objectName: "shortcutsChord"
       width: parent.width; height: 51; radius: 12
-      color: root.recording ? "#303030" : chordHover.hovered ? "#2b2b2b" : "#262626"
+      color: root.recording || chordHover.hovered ? Shell.PanelStyle.controlHover : Shell.PanelStyle.controlFill
       border.width: root.recording || root.conflict ? 1 : 0
       border.color: root.conflict && !root.recording ? "#ffb4ab" : Shell.PanelStyle.accent
       activeFocusOnTab: true
@@ -246,7 +248,7 @@ Settings.Modal {
     Rectangle {
       objectName: "shortcutsNameInput"
       width: parent.width; height: 51; radius: 12
-      color: nameInput.activeFocus ? "#303030" : "#262626"
+      color: nameInput.activeFocus ? Shell.PanelStyle.controlHover : Shell.PanelStyle.controlFill
       Text {
         x: 20; width: parent.width - 40; anchors.verticalCenter: parent.verticalCenter
         visible: !nameInput.text; elide: Text.ElideRight
@@ -297,17 +299,11 @@ Settings.Modal {
   }
 
   overlay: Item {
-    // A solid footer: scrolled content passes under it, never through it.
+    // The scroll viewport ends above this footer, preserving the modal background.
     objectName: "shortcutsEditorFooter"
     y: root.height - root.footerHeight
     width: root.width; height: root.footerHeight
 
-    Rectangle {
-      anchors.fill: parent
-      radius: root.radius; color: Settings.Style.card
-      Rectangle { width: parent.width; height: root.radius; color: Settings.Style.card }
-      Rectangle { x: 30; width: parent.width - 60; height: 1; color: "#2a2a2a" }
-    }
     Text {
       x: 30; width: parent.width - 330; anchors.verticalCenter: parent.verticalCenter
       visible: Shortcuts.State.error !== ""
@@ -321,7 +317,7 @@ Settings.Modal {
       visible: !!root.editing && Shortcuts.State.error === ""
       width: 84; height: 40; radius: 8
       color: deleteHover.hovered ? "#3a2622" : "transparent"
-      border.width: 1; border.color: "#4a4a4a"
+      border.width: 1; border.color: Shell.PanelStyle.outline
       Accessible.role: Accessible.Button
       Accessible.name: "Delete shortcut"
       Accessible.onPressAction: root.remove()
@@ -339,8 +335,8 @@ Settings.Modal {
       Rectangle {
         objectName: "shortcutsEditorCancel"
         width: 84; height: 40; radius: 8
-        color: cancelHover.hovered ? "#303030" : "transparent"
-        border.width: 1; border.color: "#4a4a4a"
+        color: cancelHover.hovered ? Shell.PanelStyle.controlHover : Shell.PanelStyle.controlFill
+        border.width: 1; border.color: Shell.PanelStyle.outline
         Accessible.role: Accessible.Button
         Accessible.name: "Cancel"
         Accessible.onPressAction: Settings.State.back()
@@ -355,7 +351,7 @@ Settings.Modal {
       Rectangle {
         objectName: "shortcutsEditorSave"
         width: 120; height: 40; radius: 8
-        color: root.valid ? "#cba6f7" : "#3a2f45"
+        color: root.valid ? Shell.PanelStyle.accent : Shell.PanelStyle.controlFill
         opacity: root.valid && !root.saving ? 1 : 0.45
         Accessible.role: Accessible.Button
         Accessible.name: saveText.text
@@ -364,7 +360,7 @@ Settings.Modal {
           id: saveText
           anchors.centerIn: parent
           text: root.editing ? "Save changes" : "Add shortcut"
-          color: root.valid ? "#1d1d1d" : "white"
+          color: root.valid ? Shell.PanelStyle.accentText : Shell.Theme.colors.text
           opacity: root.valid ? 1 : 0.5
           font.family: Shell.Theme.fontFamily
           font.weight: Font.DemiBold; font.pixelSize: 13
