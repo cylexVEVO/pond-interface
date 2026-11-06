@@ -8,7 +8,7 @@ import "Geometry.js" as Geometry
 Settings.Modal {
   id: root
   objectName: "displayPanel"
-  title: "Display"; closeLabel: "Back to Appearance"; bodyTop: 77
+  title: "Display"; closeLabel: "Back to System"; bodyTop: 77
   contentHeight: fields.y + fields.height + 30
   titleOpacity: dropdownField ? 0.3 : 1
   property string dropdownField: ""

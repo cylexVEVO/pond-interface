@@ -1,6 +1,7 @@
 import QtQuick
 import "." as System
 import ".." as Settings
+import "../display" as Display
 import "../.." as Shell
 
 Settings.Modal {
@@ -13,6 +14,16 @@ Settings.Modal {
   Column {
     id: fields
     x: 30; width: root.width - 60; spacing: 24
+    Section {
+      width: parent.width
+      title: "Display"
+      Settings.Field {
+        objectName: "systemDisplay"
+        width: parent.width; navigation: true
+        title: "Display settings"; value: Display.State.summary
+        onClicked: Settings.State.openPage("display")
+      }
+    }
     Section {
       width: parent.width
       title: "Input"

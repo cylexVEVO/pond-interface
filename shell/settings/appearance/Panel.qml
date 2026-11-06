@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "." as Appearance
 import ".." as Settings
-import "../display" as Display
 import "../.." as Shell
 
 Settings.Modal {
@@ -99,13 +98,6 @@ Settings.Modal {
         Keys.onLeftPressed: Appearance.State.setBrightness(value - 0.05)
         Keys.onRightPressed: Appearance.State.setBrightness(value + 0.05)
       }
-    }
-    Accordion {
-      objectName: "displaySection"
-      width: parent.width; title: "Display"
-      summary: Display.State.summary
-      navigation: true
-      onToggled: Settings.State.openPage("display")
     }
     Text {
       width: parent.width
