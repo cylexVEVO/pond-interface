@@ -87,18 +87,21 @@ Item {
   }
 
   // A quiet amber ring belongs to the app causing the sleep inhibition.
-  Rectangle {
+  Activity.Presence {
     anchors { right: parent.right; bottom: parent.bottom; margins: 3 }
-    width: 7; height: 7; radius: 3.5
-    color: Shell.PanelStyle.surface
-    border.width: 1.5; border.color: "#F5AE62"
-    visible: root.sleepRequests.length > 0
+    width: 7; height: 7
+    shown: root.sleepRequests.length > 0
+    Rectangle {
+      anchors.fill: parent; radius: 3.5
+      color: Shell.PanelStyle.surface
+      border.width: 1.5; border.color: "#F5AE62"
+    }
   }
-  Image {
+  Activity.Presence {
     anchors { left: parent.left; bottom: parent.bottom; margins: 2 }
     width: 8; height: 8
-    source: "../assets/sound.svg"
-    visible: root.playback.length > 0
+    shown: root.playback.length > 0
+    Image { anchors.fill: parent; source: "../assets/sound.svg" }
   }
   Activity.Hint {
     hovered: pointer.containsMouse && !!root.activityDescription

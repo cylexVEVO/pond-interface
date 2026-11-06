@@ -175,7 +175,7 @@ PanelWindow {
     }
     Item {
       width: 28; height: zenPrivacy.height
-      visible: Activity.State.privacyStreams.length > 0 || Activity.State.detectionFailed
+      visible: zenPrivacy.presented
       Activity.PrivacyIndicator { id: zenPrivacy; anchors.horizontalCenter: parent.horizontalCenter }
     }
     ActionButton {
@@ -191,7 +191,7 @@ PanelWindow {
   // Use the existing outer margin, outside the clock's clipped content and
   // click target. No extra row or sidebar space is reserved for privacy lights.
   Activity.PrivacyIndicator {
-    visible: !Zen.active && (Activity.State.privacyStreams.length > 0 || Activity.State.detectionFailed)
+    visible: !Zen.active && presented
     x: mainStack.x + root.cardWidth - width - 4
     y: 1
     z: 5

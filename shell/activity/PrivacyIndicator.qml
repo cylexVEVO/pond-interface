@@ -6,8 +6,9 @@ Row {
   id: root
   spacing: 0
   width: implicitWidth
-  height: visible ? 8 : 0
-  visible: Activity.State.privacyStreams.length > 0 || Activity.State.detectionFailed
+  readonly property bool presented: implicitWidth > 0.01
+  height: presented ? 8 : 0
+  visible: presented
   Repeater {
     model: [
       {kinds: ["microphone", "capture", "monitor"], color: "#F5AE62", hollow: false, error: false},
@@ -15,12 +16,12 @@ Row {
       {kinds: ["video", "screen"], color: "#A1B7C8", hollow: true, error: false},
       {kinds: [], color: "#A1B7C8", hollow: true, error: true}
     ]
-    Item {
+    Activity.Presence {
       id: light
       required property var modelData
       readonly property var streams: Activity.State.privacyStreams.filter(s => modelData.kinds.includes(s.kind))
-      visible: modelData.error ? Activity.State.detectionFailed : streams.length > 0
-      width: visible ? 10 : 0; height: 8
+      shown: modelData.error ? Activity.State.detectionFailed : streams.length > 0
+      width: 10 * reveal; height: 8
       Accessible.role: Accessible.StaticText
       Accessible.name: modelData.error ? "Recording detection unavailable" : Activity.State.describe(streams)
       Rectangle {
@@ -32,7 +33,7 @@ Row {
       }
       HoverHandler { id: pointer }
       Activity.Hint {
-        hovered: pointer.hovered
+        hovered: light.shown && pointer.hovered
         text: light.modelData.error ? Activity.State.audioError : Activity.State.describe(light.streams)
       }
     }
