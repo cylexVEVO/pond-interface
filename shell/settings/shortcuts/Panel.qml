@@ -360,6 +360,7 @@ Settings.Modal {
         cursorDelegate: Rectangle {
           id: caret
           width: 1; color: Shell.PanelStyle.accent
+          visible: search.cursorVisible
           Timer {
             running: search.cursorVisible; repeat: true
             interval: Qt.styleHints.cursorFlashTime / 2
