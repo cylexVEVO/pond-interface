@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import "." as Display
 import ".." as Settings
+import "../appearance" as Appearance
 import "../.." as Shell
 import "Geometry.js" as Geometry
 
@@ -146,6 +147,36 @@ Settings.Modal {
         onClicked: root.openDropdown(modelData, field)
         onToggled: checked => Display.State.change("vrr",checked ? "on" : "off")
       }
+    }
+    Appearance.Accordion {
+      objectName: "brightnessSection"
+      width: parent.width; title: "Screen brightness"
+      summary: Appearance.State.brightnessAvailable ? Math.round(Appearance.State.brightness * 100) + "%" : "Unavailable"
+      enabled: Appearance.State.brightnessAvailable && !root.dropdownField
+      expanded: enabled && Appearance.State.expandedSection === "brightness"
+      opacity: root.dropdownField ? 0.3 : 1
+      expandedHeight: 109
+      onToggled: Appearance.State.toggleSection("brightness")
+      Shell.Slider {
+        id: brightnessSlider
+        objectName: "brightnessSlider"
+        x: 0; y: 5; width: parent.width
+        externalValue: Appearance.State.brightness
+        showInlineValue: false
+        onMoved: Appearance.State.setBrightness(brightnessSlider.value)
+        onDragStarted: Appearance.State.draggingBrightness = true
+        onDragFinished: { Appearance.State.draggingBrightness = false; Appearance.State.flushBrightness(); }
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Slider
+        Accessible.name: "Screen brightness"
+        Keys.onLeftPressed: Appearance.State.setBrightness(value - 0.05)
+        Keys.onRightPressed: Appearance.State.setBrightness(value + 0.05)
+      }
+    }
+    Text {
+      width: parent.width; visible: !!Appearance.State.error
+      text: Appearance.State.error; color: "#ffb4ab"; wrapMode: Text.Wrap
+      font.family: Shell.Theme.fontFamily; font.pixelSize: 13
     }
     Text {
       width: parent.width; visible: !!Display.State.error
