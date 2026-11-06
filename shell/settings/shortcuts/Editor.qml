@@ -42,7 +42,7 @@ Settings.Modal {
   }
   readonly property var conflict: root.chord === "" ? null
       : Shortcuts.State.conflictWith(root.chord, root.editing ? root.editing.key : "")
-  readonly property bool valid: root.chord !== "" && root.actionValue !== "" && !root.conflict
+  readonly property bool valid: root.chord !== "" && root.actionValue !== "" && !root.conflict && Shortcuts.State.safetyError(root.chord) === ""
   // What the list will call it when no name is given.
   readonly property string fallbackName: root.actionValue === "" ? ""
       : Shortcuts.State.label({ title: "", key: root.chord, action: root.actionValue })
@@ -187,6 +187,8 @@ Settings.Modal {
         const chord = Shortcuts.State.readChord(event, mods => { root.staged = mods.join("+"); });
         if (chord === null) return;
         if (chord === "") { root.hint = "That key can't be used in a shortcut. Try another one."; return; }
+        const error = Shortcuts.State.safetyError(chord);
+        if (error) { root.staged = ""; root.hint = error; return; }
         root.chord = chord;
         root.hint = "";
         root.stopRecording();
@@ -236,7 +238,7 @@ Settings.Modal {
       font.family: Shell.Theme.fontFamily; font.pixelSize: 12
       text: root.conflict
           ? "Already used by “" + Shortcuts.State.label(root.conflict) + "”. Pick other keys."
-          : root.hint
+          : root.hint || (root.chord !== "" ? Shortcuts.State.safetyError(root.chord) : "")
     }
 
     Item { width: 1; height: 6 }

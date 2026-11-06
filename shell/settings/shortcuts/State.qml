@@ -151,6 +151,14 @@ Singleton {
     return mods.sort().map(index => upper[index]).join("+") + "+" + chord;
   }
 
+  // Keep in sync with shortcuts.py. Shift alone still types/selects text.
+  function safetyError(chord) {
+    const parts = String(chord).toUpperCase().split("+");
+    if (parts.slice(0, -1).some(mod => ["MOD", "SUPER", "CTRL", "ALT"].includes(mod))) return "";
+    if (/^(F([1-9]|[12][0-9]|3[0-5])|XF86(AUDIO[A-Z]+|MONBRIGHTNESS(UP|DOWN))|PRINT)$/.test(parts[parts.length - 1])) return "";
+    return "Hold Super, Ctrl, or Alt with this key to keep typing and navigation working.";
+  }
+
   // The bind already on a chord, ignoring the one being changed.
   function conflictWith(key, ignore) {
     const wanted = canonical(key);

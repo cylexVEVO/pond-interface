@@ -4,6 +4,7 @@
 # Custom binds are appended to ~/.config/niri/cfg/keybinds.kdl, which niri
 # auto-reloads, so entries show up in the hotkey overlay immediately.
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -139,9 +140,21 @@ def active_binds():
     return [bind for bind in binds.values() if bind["action"] != PARKED]
 
 
+def safety_error(chord):
+    # Keep in sync with State.qml. Shift alone still types/selects text.
+    parts = chord.upper().split("+")
+    if any(mod in ("MOD", "SUPER", "CTRL", "ALT") for mod in parts[:-1]):
+        return ""
+    if re.fullmatch(r"F([1-9]|[12][0-9]|3[0-5])|XF86(AUDIO[A-Z]+|MONBRIGHTNESS(UP|DOWN))|PRINT", parts[-1]):
+        return ""
+    return "Hold Super, Ctrl, or Alt with this key to keep typing and navigation working."
+
+
 def check_free(key, ignore=""):
     if not canonical(key):
         raise ValueError(f"'{key}' is not a valid niri chord.")
+    if error := safety_error(key):
+        raise ValueError(error)
     for bind in active_binds():
         identity = canonical(bind["key"])
         if identity == canonical(key) and identity != canonical(ignore):

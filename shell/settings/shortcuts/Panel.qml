@@ -132,6 +132,8 @@ Settings.Modal {
   }
 
   function record(chord) {
+    const error = Shortcuts.State.safetyError(chord);
+    if (error) { root.staged = ""; root.recordHint = error; return; }
     if (Shortcuts.State.canonical(chord) === Shortcuts.State.canonical(root.recordingKey)) {
       root.stopRecording();
       return;
