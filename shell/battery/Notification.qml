@@ -69,6 +69,7 @@ PanelWindow {
     }
 
     Shell.IconButton {
+        accessibleName: "Dismiss battery notification"
       id: dismiss
       x: 111
       y: 5

@@ -14,8 +14,7 @@ Item {
   readonly property bool canConnect: isEnterprise ? enterprise.complete : password.text.length > 0
 
   implicitWidth: PanelStyle.width
-  implicitHeight: isEnterprise ? connectButton.y + (canConnect ? 63.5 : 0.5)
-                               : canConnect ? 226 : 167
+  implicitHeight: connectButton.y + 63.5
 
   function focusEditor() {
     if (isEnterprise) enterprise.focusEditor();
@@ -92,12 +91,21 @@ Item {
       width: 276
       height: 48
       radius: 100
-      visible: opacity > 0
-      opacity: root.canConnect ? 1 : 0
+      enabled: root.interactive && !root.dropdownOpen && root.canConnect
+      opacity: enabled ? 1 : 0.4
+      activeFocusOnTab: enabled
+      Accessible.role: Accessible.Button
+      Accessible.name: "Connect"
+      Accessible.onPressAction: trigger()
+      Keys.onReturnPressed: trigger()
+      Keys.onEnterPressed: trigger()
+      Keys.onSpacePressed: trigger()
+      border.width: activeFocus ? 2 : 0
+      border.color: Theme.colors.text
       color: connectHover.hovered ? "#D8B8FA" : PanelStyle.accent
 
       function trigger() {
-        if (root.canConnect)
+        if (enabled)
           root.stackController.connectNetwork(
               String(root.selection.ssid || ""),
               root.isEnterprise ? enterprise.secret : password.text, false,

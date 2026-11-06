@@ -8,10 +8,14 @@ DeviceList {
   title: "Wifi"
   viewportHeight: 306
   devices: Wifi.State.wiredNetworks.concat(Wifi.State.enabled ? Wifi.State.networks : [])
+  emptyText: !Wifi.State.adapter ? "No Wi-Fi adapter found."
+      : !Wifi.State.enabled ? "Wi-Fi is off."
+      : "No networks found. Move closer to your router and try again."
   headerControl: Component { Toggle {
+    accessibleName: "Wi-Fi"
     trackAlpha: PanelStyle.drawerToggleAlpha
     checked: Wifi.State.enabled
-    enabled: root.interactive
+    enabled: root.interactive && !!Wifi.State.adapter
     onToggled: checked => Wifi.State.setWifiEnabled(checked)
   } }
   deviceDelegate: Component { NetworkRow {

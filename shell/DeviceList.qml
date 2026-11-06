@@ -20,7 +20,7 @@ Item {
   property real listBottomPadding: 0
   readonly property alias contentY: deviceList.contentY
   implicitWidth: PanelStyle.width
-  implicitHeight: viewportHeight + (message !== "" ? 44 : 0)
+  implicitHeight: viewportHeight + (message !== "" ? messageText.implicitHeight + 12 : 0)
 
   PanelBackground {
     anchors.fill: parent
@@ -55,7 +55,8 @@ Item {
       font.family: Theme.fontFamily; font.pixelSize: 13
     }
     Text {
-      x: 20; y: root.viewportHeight; width: 276; height: 38
+      id: messageText
+      x: 20; y: root.viewportHeight; width: 276
       text: root.message; visible: root.message !== ""
       wrapMode: Text.Wrap; color: Theme.colors.errorText
       font.family: Theme.fontFamily; font.pixelSize: 12

@@ -12,11 +12,25 @@ Item {
   property int hoverEasing: Easing.OutCubic
   property string accessibleName: ""
   readonly property bool hovered: pointer.containsMouse
-  property real glyphOpacity: hovered ? 1 : restingOpacity
+  property real glyphOpacity: hovered || activeFocus ? 1 : restingOpacity
   signal clicked
+  activeFocusOnTab: enabled
+  Accessible.role: Accessible.Button
+  Accessible.name: accessibleName
+  Accessible.onPressAction: if (enabled) clicked()
+  Keys.onReturnPressed: if (enabled) clicked()
+  Keys.onEnterPressed: if (enabled) clicked()
+  Keys.onSpacePressed: if (enabled) clicked()
 
   implicitWidth: 24
   implicitHeight: 24
+  Rectangle {
+    anchors.fill: parent
+    radius: 4
+    color: "transparent"
+    border.width: root.activeFocus ? 1 : 0
+    border.color: PanelStyle.accent
+  }
   Behavior on glyphOpacity {
     enabled: root.animateGlyphOpacity
     HoverAnimation { easing.type: root.hoverEasing }

@@ -17,6 +17,7 @@ Shell.DeviceList {
       : "No paired devices. Search nearby to pair a device."
   message: service.errorText
   headerControl: Component { Shell.Toggle {
+    accessibleName: "Bluetooth"
     trackAlpha: Shell.PanelStyle.drawerToggleAlpha
     checked: root.service.enabled
     enabled: root.interactive && root.service.available

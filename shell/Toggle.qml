@@ -7,11 +7,23 @@ Rectangle {
   readonly property bool hovered: toggleMouse.containsMouse && root.enabled
   property int animationDuration: 200
   signal toggled(bool checked)
+  property string accessibleName: ""
+  activeFocusOnTab: enabled
+  Accessible.role: Accessible.CheckBox
+  Accessible.name: accessibleName
+  Accessible.checked: checked
+  Accessible.onPressAction: activate()
+  Keys.onReturnPressed: activate()
+  Keys.onEnterPressed: activate()
+  Keys.onSpacePressed: activate()
+  function activate() { if (enabled && !busy) toggled(!checked); }
   property real position: checked ? 1 : 0
 
   implicitWidth: 54
   implicitHeight: 28
   radius: height / 2
+  border.width: activeFocus ? 1 : 0
+  border.color: PanelStyle.accent
   property real trackAlpha: 0.06
   color: Qt.rgba(1, 1, 1, trackAlpha + (root.hovered ? 0.06 : 0))
 
@@ -88,7 +100,7 @@ Rectangle {
     id: toggleMouse
     anchors.fill: parent
     hoverEnabled: true
-    cursorShape: Qt.PointingHandCursor
-    onClicked: if (!root.busy) root.toggled(!root.checked)
+    cursorShape: root.busy ? Qt.BusyCursor : Qt.PointingHandCursor
+    onClicked: root.activate()
   }
 }

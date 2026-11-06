@@ -241,7 +241,11 @@ Settings.Modal {
       Rectangle {
         visible: !row.header
         anchors.fill: parent; radius: 12
-        color: row.recording ? "#303030" : row.highlighted ? "#262626" : "transparent"
+        color: row.recording ? Shell.PanelStyle.controlHover
+            : row.highlighted ? Shell.PanelStyle.rowHover : "transparent"
+        Behavior on color {
+          ColorAnimation { duration: Settings.Style.hoverDuration; easing.type: Easing.OutCubic }
+        }
         border.width: row.recording ? 1 : 0
         border.color: root.recordHint !== "" ? "#ffb4ab" : Shell.PanelStyle.accent
         Accessible.role: Accessible.Button

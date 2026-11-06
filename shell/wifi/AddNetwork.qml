@@ -19,7 +19,7 @@ Item {
       && (isEnterprise ? enterprise.complete : !needsPassword || password.text.length > 0)
 
   implicitWidth: PanelStyle.width
-  implicitHeight: connectButton.y + (canConnect ? 63.5 : isEnterprise ? 0.5 : -0.5)
+  implicitHeight: connectButton.y + 63.5
   onSecurityModeChanged: form.contentY = 0
 
   Behavior on implicitHeight {
@@ -126,6 +126,7 @@ Item {
         id: hidden
         x: 19.5
         y: root.isEnterprise ? enterprise.y + enterprise.height + 12 : 247
+        accessibleName: "Hidden network"
         checked: root.hiddenNetwork
         onToggled: checked => root.hiddenNetwork = checked
       }
@@ -147,12 +148,21 @@ Item {
       width: 276
       height: 48
       radius: 100
-      visible: opacity > 0
-      opacity: root.canConnect ? 1 : 0
+      enabled: root.interactive && !root.dropdownOpen && root.canConnect
+      opacity: enabled ? 1 : 0.4
+      activeFocusOnTab: enabled
+      Accessible.role: Accessible.Button
+      Accessible.name: "Connect"
+      Accessible.onPressAction: trigger()
+      Keys.onReturnPressed: trigger()
+      Keys.onEnterPressed: trigger()
+      Keys.onSpacePressed: trigger()
+      border.width: activeFocus ? 2 : 0
+      border.color: Theme.colors.text
       color: connectHover.hovered ? "#D8B8FA" : PanelStyle.accent
 
       function trigger() {
-        if (root.canConnect)
+        if (enabled)
           root.stackController.connectNetwork(
               networkName.text, root.isEnterprise ? enterprise.secret : password.text,
               root.hiddenNetwork, root.securityMode,

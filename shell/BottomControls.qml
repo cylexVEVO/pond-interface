@@ -311,7 +311,6 @@ Card {
       Accessible.role: Accessible.Button
       Accessible.name: slot === 0 ? "Wi-Fi" : slot === 1 ? "Sound"
           : slot === 2 ? "Settings" : root.collapseProgress < 0.5 ? "Collapse sidebar" : "Expand sidebar"
-      Accessible.onPressAction: action.clicked()
 
       Rectangle {
         anchors.fill: parent

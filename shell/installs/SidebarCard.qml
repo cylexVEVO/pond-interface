@@ -98,6 +98,7 @@ Shell.Card {
         y: indicator.y
       }
       Shell.IconButton {
+        accessibleName: "Dismiss installation"
         id: dismiss
         visible: row.status !== "installing"
         opacity: row.showDismiss ? 1 : 0

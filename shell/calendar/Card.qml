@@ -178,9 +178,6 @@ Shell.PanelBackground {
     activeFocusOnTab: visible
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
-    Accessible.onPressAction: clicked()
-    Keys.onSpacePressed: clicked()
-    Keys.onReturnPressed: clicked()
 
     Rectangle {
       anchors.fill: parent

@@ -87,8 +87,6 @@ Rectangle {
     Accessible.role: Accessible.Button
     Accessible.name: root.closeLabel
     activeFocusOnTab: true
-    Keys.onReturnPressed: root.backRequested()
-    Keys.onSpacePressed: root.backRequested()
     onClicked: root.backRequested()
   }
 }

@@ -22,6 +22,24 @@ Settings.Modal {
   roundedContent: true
   onBackRequested: Settings.State.back()
   Keys.onEscapePressed: { if (search.text) search.clear(); else Settings.State.back(); }
+  Keys.onDownPressed: moveSelection(1)
+  Keys.onUpPressed: moveSelection(-1)
+  Keys.onReturnPressed: chooseCurrent()
+  Keys.onEnterPressed: chooseCurrent()
+  Component.onCompleted: Qt.callLater(() => search.forceActiveFocus())
+
+  property bool keyboardSelection: false
+  function moveSelection(direction) {
+    if (!rows.length) return;
+    keyboardSelection = true;
+    list.currentIndex = Math.max(0, Math.min(rows.length - 1,
+        list.currentIndex < 0 ? (direction > 0 ? 0 : rows.length - 1) : list.currentIndex + direction));
+    list.positionViewAtIndex(list.currentIndex, ListView.Contain);
+  }
+  function chooseCurrent() {
+    if (list.currentIndex >= 0 && list.currentIndex < rows.length)
+      choose(rows[list.currentIndex].id);
+  }
 
   function choose(id) {
     picked(id);
@@ -36,13 +54,19 @@ Settings.Modal {
     bottomMargin: 16
     boundsBehavior: Flickable.StopAtBounds
     model: root.rows
+    currentIndex: -1
+    onModelChanged: {
+      currentIndex = root.query && root.rows.length ? 0 : -1;
+      root.keyboardSelection = false;
+      positionViewAtBeginning();
+    }
     Shell.ScrollWheel { view: list }
     delegate: Rectangle {
       id: row
       required property var modelData
       required property int index
       readonly property bool chosen: root.selected.indexOf(modelData.id) >= 0
-      readonly property bool highlighted: hover.hovered || (!!root.query && index === 0)
+      readonly property bool highlighted: hover.hovered || ((root.keyboardSelection || !!root.query) && list.currentIndex === index)
       width: list.width; height: 50; radius: 12
       color: highlighted ? Shell.PanelStyle.rowHover : "transparent"
       Accessible.role: root.multiple ? Accessible.CheckBox : Accessible.RadioButton
@@ -81,6 +105,16 @@ Settings.Modal {
     }
   }
 
+  Text {
+    x: 30; y: 40; width: root.width - 60
+    visible: root.rows.length === 0
+    text: root.query ? "No results. Try another search." : "No options available."
+    horizontalAlignment: Text.AlignHCenter
+    wrapMode: Text.Wrap
+    color: Shell.Theme.colors.text; opacity: 0.6
+    font.family: Shell.Theme.fontFamily; font.pixelSize: 15
+  }
+
   overlay: [
     Rectangle {
       objectName: "systemSearch"
@@ -102,9 +136,11 @@ Settings.Modal {
         font.family: Shell.Theme.fontFamily; font.pixelSize: 15
         Accessible.role: Accessible.EditableText
         Accessible.name: root.placeholder
+        activeFocusOnTab: true
         cursorDelegate: Rectangle {
           id: caret
           width: 1; color: Shell.PanelStyle.accent
+          visible: search.cursorVisible
           Timer {
             running: search.cursorVisible; repeat: true
             interval: Qt.styleHints.cursorFlashTime / 2
@@ -112,7 +148,10 @@ Settings.Modal {
             onTriggered: caret.opacity = 1 - caret.opacity
           }
         }
-        onAccepted: if (root.query && root.rows.length) root.choose(root.rows[0].id)
+        Keys.onReturnPressed: root.chooseCurrent()
+        Keys.onEnterPressed: root.chooseCurrent()
+        Keys.onDownPressed: root.moveSelection(1)
+        Keys.onUpPressed: root.moveSelection(-1)
       }
       Image {
         x: parent.width - 36; anchors.verticalCenter: parent.verticalCenter
@@ -125,7 +164,11 @@ Settings.Modal {
         x: parent.width - 46; anchors.verticalCenter: parent.verticalCenter
         width: 40; height: 40; radius: 4
         visible: !!search.text
-        color: clearHover.hovered ? Shell.PanelStyle.rowHover : "transparent"
+        color: clearHover.hovered || activeFocus ? Shell.PanelStyle.rowHover : "transparent"
+        activeFocusOnTab: visible
+        Keys.onReturnPressed: { search.clear(); search.forceActiveFocus(); }
+        Keys.onEnterPressed: { search.clear(); search.forceActiveFocus(); }
+        Keys.onSpacePressed: { search.clear(); search.forceActiveFocus(); }
         Accessible.role: Accessible.Button
         Accessible.name: "Clear search"
         Accessible.onPressAction: search.clear()

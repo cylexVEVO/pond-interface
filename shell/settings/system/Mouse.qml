@@ -95,8 +95,6 @@ Settings.Modal {
         Accessible.role: Accessible.CheckBox
         Accessible.name: "Natural scrolling"
         Accessible.checked: checked
-        Keys.onReturnPressed: toggled(!checked)
-        Keys.onSpacePressed: toggled(!checked)
         checked: System.State.mouse[root.naturalKey]
         onToggled: checked => System.State.setMouse(root.naturalKey, checked)
       }

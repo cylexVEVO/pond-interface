@@ -6,12 +6,24 @@ Item {
   id: root
   property bool checked: false
   signal toggled(bool checked)
+  property string accessibleName: ""
+  activeFocusOnTab: enabled
+  Accessible.role: Accessible.CheckBox
+  Accessible.name: accessibleName
+  Accessible.checked: checked
+  Accessible.onPressAction: activate()
+  Keys.onReturnPressed: activate()
+  Keys.onEnterPressed: activate()
+  Keys.onSpacePressed: activate()
+  function activate() { if (enabled) toggled(!checked); }
   implicitWidth: 24
   implicitHeight: 24
 
   Rectangle {
     anchors.fill: parent
     radius: 6
+    border.width: root.activeFocus ? 1 : 0
+    border.color: PanelStyle.accent
     color: checkHover.hovered ? PanelStyle.checkHover : PanelStyle.checkFill
   }
 
@@ -34,5 +46,5 @@ Item {
   }
 
   HoverHandler { id: checkHover; cursorShape: Qt.PointingHandCursor }
-  TapHandler { onTapped: root.toggled(!root.checked) }
+  TapHandler { onTapped: root.activate() }
 }

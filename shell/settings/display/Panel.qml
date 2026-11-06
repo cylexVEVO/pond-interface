@@ -115,9 +115,6 @@ Settings.Modal {
           accessibleName: "Rotate display 90° " + modelData
           Accessible.role: Accessible.Button
           Accessible.name: accessibleName
-          Accessible.onPressAction: rotateDisplay()
-          Keys.onReturnPressed: rotateDisplay()
-          Keys.onSpacePressed: rotateDisplay()
           onClicked: rotateDisplay()
           function rotateDisplay() {
             if (enabled) Display.State.change("rotate", modelData);

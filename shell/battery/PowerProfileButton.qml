@@ -22,12 +22,8 @@ Shell.IconButton {
   Accessible.name: accessibleName
   Accessible.checkable: true
   Accessible.checked: selected
-  Accessible.onPressAction: choose()
 
   onClicked: choose()
-  Keys.onSpacePressed: choose()
-  Keys.onReturnPressed: choose()
-  Keys.onEnterPressed: choose()
 
   function choose() {
     if (available)

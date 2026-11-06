@@ -10,9 +10,13 @@ Settings.Modal {
     title: "Fingerprints"
     closeLabel: "Back to System"
     bodyTop: 92
+    // Keep the centered surface still while checks, rows, and feedback change.
+    // The modal's body scrolls when content exceeds the available space.
+    implicitHeight: Math.min(560, availableHeight)
     property string page: "list"
     property var savedFingers: []
     property bool listLoaded: false
+    readonly property bool loading: !checkedSetup || (setupState.ready && !listLoaded)
     property string listError: ""
     readonly property bool scanning: page === "scan"
     readonly property bool scanDone: scanState === "complete" || scanState === "failed"
@@ -91,7 +95,6 @@ Settings.Modal {
                     const result = JSON.parse(text);
                     root.savedFingers = result.fingers || [];
                     root.listError = result.error || "";
-                    root.listLoaded = true;
                 } catch (e) { root.listError = "Couldn’t read saved fingerprints."; }
             }
         }
@@ -125,21 +128,21 @@ Settings.Modal {
     Process {
         id: probe
         command: ["python3", Quickshell.shellDir + "/settings/system/fingerprint_setup.py", "status"]
-        onRunningChanged: if (running) { root.probeError = ""; root.checkedSetup = false; }
+        onRunningChanged: if (running) root.probeError = ""
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.setupState = JSON.parse(text); root.checkedSetup = true; if (root.setupState.ready) root.refresh(); }
+                try { root.setupState = JSON.parse(text); }
                 catch (e) {
-                    root.checkedSetup = true;
                     root.setupState = {ready: false, canSetup: false, blocker: "Setup check returned an invalid response."};
                 }
             }
         }
         stderr: SplitParser { onRead: data => root.probeError += data + "\n" }
         onExited: (code, status) => {
-            root.checkedSetup = true;
             if (code !== 0) root.setupState = {ready: false, canSetup: false,
                 blocker: "Couldn’t check setup: " + (root.probeError.trim() || "helper exited with code " + code)};
+            if (root.setupState.ready) root.refresh();
+            root.checkedSetup = true;
         }
     }
     Process {
@@ -197,11 +200,22 @@ Settings.Modal {
     Column {
         id: fields
         x: 30; width: root.width - 60; spacing: 20
+        Rectangle {
+            visible: root.loading
+            width: parent.width; height: 126; radius: 16
+            color: Shell.Theme.colors.settingsRow
+            Copy {
+                anchors.centerIn: parent
+                width: parent.width - 40
+                horizontalAlignment: Text.AlignHCenter
+                text: "Loading fingerprints…"
+            }
+        }
         Column {
             width: parent.width; spacing: 16
-            visible: !root.setupState.ready
+            visible: !root.loading && !root.setupState.ready
             Copy {
-                text: !root.checkedSetup ? "Checking fingerprint support…" : root.settingUp ? "Setting up fingerprint login…"
+                text: root.settingUp ? "Setting up fingerprint login…"
                     : root.setupState.canSetup
                         ? (root.setupState.missingLabel
                             ? "Needs update: " + root.setupState.missingLabel + "."
@@ -221,14 +235,14 @@ Settings.Modal {
         }
         Column {
             width: parent.width; spacing: 16
-            visible: root.setupState.ready && root.page === "list"
+            visible: !root.loading && root.setupState.ready && root.page === "list"
             Rectangle {
                 visible: root.savedFingers.length === 0
                 width: parent.width; height: 126; radius: 16
                 color: Shell.Theme.colors.settingsRow
                 Column {
                     anchors.centerIn: parent; spacing: 8; width: parent.width - 40
-                    Copy { width: parent.width; horizontalAlignment: Text.AlignHCenter; opacity: 1; font.pixelSize: 16; text: inventory.running ? "Loading fingerprints…" : root.listError ? "Reader unavailable" : "No fingerprints yet" }
+                    Copy { width: parent.width; horizontalAlignment: Text.AlignHCenter; opacity: 1; font.pixelSize: 16; text: root.listError ? "Reader unavailable" : "No fingerprints yet" }
                     Copy { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.listError ? "Check the reader and try again." : "Add a finger to get started." }
                 }
             }

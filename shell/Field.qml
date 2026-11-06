@@ -4,6 +4,7 @@ Rectangle {
   id: root
   property alias text: editor.text
   property string placeholderText: ""
+  property string accessibleName: placeholderText
   property bool password: false
   property bool revealed: false
   property real rightPadding: password ? 52 : 14
@@ -61,6 +62,7 @@ Rectangle {
     passwordCharacter: "■"
     readOnly: root.readOnly
     activeFocusOnTab: true
+    Accessible.name: root.accessibleName
     clip: true
     onAccepted: root.accepted()
   }
@@ -79,6 +81,7 @@ Rectangle {
     iconSourceSize: Qt.size(20, 20)
     restingOpacity: 0.7
     hoverEasing: Easing.Linear
+    accessibleName: root.revealed ? "Hide password" : "Show password"
     iconSource: Qt.resolvedUrl(root.revealed ? "assets/eye-open.svg" : "assets/eye-closed.svg")
     onClicked: root.revealed = !root.revealed
 

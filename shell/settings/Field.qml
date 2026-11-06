@@ -18,8 +18,9 @@ Rectangle {
   Accessible.name: title + ", " + value
   Accessible.checked: checked
   Accessible.onPressAction: activate()
-  function activate() { if (toggle) toggled(!checked); else clicked(); }
+  function activate() { if (!enabled) return; if (toggle) toggled(!checked); else clicked(); }
   Keys.onReturnPressed: activate()
+  Keys.onEnterPressed: activate()
   Keys.onSpacePressed: activate()
   Rectangle {
     x: 20; anchors.verticalCenter: parent.verticalCenter
@@ -55,11 +56,14 @@ Rectangle {
     rotation: -90
   }
   HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
-  TapHandler { enabled: !root.toggle; onTapped: root.clicked() }
+  TapHandler { onTapped: root.activate() }
   Shell.Toggle {
     objectName: "fieldToggle"
     anchors.right: parent.right; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter
     visible: root.toggle; checked: root.checked
-    onToggled: checked => root.toggled(checked)
+    // The whole settings row owns activation, including the switch area.
+    enabled: false
+    activeFocusOnTab: false
+    Accessible.ignored: true
   }
 }
