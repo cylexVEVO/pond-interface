@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import "." as Session
@@ -57,13 +56,14 @@ Item {
             readonly property bool showPresentation: root.showsPresentation(screen)
             color: showPresentation ? "#1a1409" : "black"
 
-            Button {
+            Frontend.FingerprintPrompt {
                 z: 10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 32
-                visible: surface.showPresentation && fingerprintAuth.pamReady
-                text: fingerprintAuth.authenticationPending ? "Touch the fingerprint reader · Cancel" : "Unlock with fingerprint"
+                width: Math.min(implicitWidth, parent.width - 48)
+                visible: surface.showPresentation && fingerprintAuth.pamReady && flow.phase === "editing"
+                scanning: fingerprintAuth.authenticationPending
                 enabled: flow.phase === "editing"
                 onClicked: {
                     if (fingerprintAuth.authenticationPending) {
@@ -72,6 +72,7 @@ Item {
                     } else {
                         flow.attemptFingerprint();
                     }
+                    ui.refocusRequested();
                 }
             }
 
