@@ -5,13 +5,16 @@ import ".."
 
 DeviceList {
   id: root
-  title: "Wifi"
+  readonly property bool wifiAvailable: !!Wifi.State.adapter
+  readonly property bool canAddNetwork: wifiAvailable && Wifi.State.enabled
+  title: "Network"
   viewportHeight: 306
   devices: Wifi.State.wiredNetworks.concat(Wifi.State.enabled ? Wifi.State.networks : [])
   emptyText: !Wifi.State.adapter ? "No Wi-Fi adapter found."
       : !Wifi.State.enabled ? "Wi-Fi is off."
       : "No networks found. Move closer to your router and try again."
-  headerControl: Component { Toggle {
+  headerControl: wifiAvailable ? wifiToggle : null
+  Component { id: wifiToggle; Toggle {
     accessibleName: "Wi-Fi"
     trackAlpha: PanelStyle.drawerToggleAlpha
     checked: Wifi.State.enabled
@@ -37,7 +40,8 @@ DeviceList {
         root.stackController.connectNetwork(modelData.ssid, "", false);
     }
   } }
-  footer: Component { Item {
+  footer: canAddNetwork ? addNetworkFooter : null
+  Component { id: addNetworkFooter; Item {
     id: addNetworkRow
     width: PanelStyle.rowWidth
     height: PanelStyle.rowHeight
@@ -57,7 +61,7 @@ DeviceList {
       x: 12
       anchors.verticalCenter: parent.verticalCenter
       spacing: 12
-      opacity: 0.5
+      opacity: addNetworkPointer.containsMouse ? 1 : 0.7
       Image {
         width: 20
         height: 20
@@ -75,7 +79,7 @@ DeviceList {
     MouseArea {
       id: addNetworkPointer
       anchors.fill: parent
-      enabled: root.interactive
+      enabled: root.interactive && root.canAddNetwork
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
       onClicked: root.stackController.push("add", null)

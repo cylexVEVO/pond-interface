@@ -44,13 +44,26 @@ Item {
   Text {
     x: 40
     anchors.verticalCenter: parent.verticalCenter
+    anchors.verticalCenterOffset: root.network.wired ? -8 : 0
     width: (root.canDisconnect ? 202 : 264) - x
     elide: Text.ElideRight
-    text: String(root.network.wired ? root.network.name : root.network.ssid || "")
+    text: root.network.wired ? "Ethernet" : String(root.network.ssid || "")
     color: Theme.colors.text
     font.family: Theme.fontFamily
     font.weight: Font.Medium
     font.pixelSize: 13
+  }
+  Text {
+    visible: !!root.network.wired
+    x: 40
+    y: 25
+    width: parent.width - x - 12
+    elide: Text.ElideRight
+    text: "Connected" + (root.network.device ? " · " + root.network.device : "")
+    color: Theme.colors.text
+    opacity: 0.5
+    font.family: Theme.fontFamily
+    font.pixelSize: 11
   }
   Image {
     visible: !!root.network.locked && !root.network.connected
