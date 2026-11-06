@@ -14,6 +14,10 @@ binds {
 
     Mod+Slash                           hotkey-overlay-title="Open Keyboard Shortcuts" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "open" "shortcuts"; }
 
+    Mod+B                               repeat=false hotkey-overlay-title="Toggle Sidebar" { spawn "qs" "-c" "pond-shell" "ipc" "call" "sidebar" "toggle"; }
+    Mod+Comma                           repeat=false hotkey-overlay-title="Toggle Settings" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "toggle"; }
+    Mod+Shift+Comma                     repeat=false hotkey-overlay-title="Open Display Settings" { spawn "qs" "-c" "pond-shell" "ipc" "call" "settings" "open" "display"; }
+
     // ─── Media Controls ───
     XF86AudioRaiseVolume                allow-when-locked=true hotkey-overlay-title="Raise Volume" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "increase"; }
     XF86AudioLowerVolume                allow-when-locked=true hotkey-overlay-title="Lower Volume" { spawn "qs" "-c" "pond-shell" "ipc" "call" "volume" "decrease"; }
