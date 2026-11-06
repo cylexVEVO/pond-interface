@@ -4,12 +4,12 @@ import Quickshell
 import Quickshell.Io
 import "settings" as Settings
 import "notifications" as Notifications
+import "settings/system" as System
 
 Singleton {
   id: root
   property bool active: false
-  // Session-only preference. Never rewrite saved lock/display/sleep timeouts.
-  property bool keepAwake: false
+  readonly property bool keepAwake: System.Idle.zenKeepAwake
   readonly property bool holdingIdle: active && keepAwake
   onActiveChanged: {
     Notifications.State.transientId = "";

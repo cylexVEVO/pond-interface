@@ -3,6 +3,7 @@ import "." as System
 import ".." as Settings
 import "../display" as Display
 import "../.." as Shell
+import "../../activity" as Activity
 
 Settings.Modal {
   id: root
@@ -60,6 +61,17 @@ Settings.Modal {
         title: "Fingerprints"; value: "Manage"
         onClicked: Settings.State.openPage("fingerprints")
       }
+      Settings.Field {
+        width: parent.width; toggle: true
+        title: "Stay awake in Zen"; value: ""
+        checked: System.Idle.zenKeepAwake
+        onToggled: checked => System.Idle.setZenKeepAwake(checked)
+        HoverHandler { id: zenHover }
+        Activity.Hint {
+          hovered: zenHover.hovered
+          text: "Pauses automatic lock, display off and sleep during Zen. Manual lock and sleep still work."
+        }
+      }
       AuthenticationBanner { width: parent.width }
     }
     Section {
@@ -71,6 +83,24 @@ Settings.Modal {
         title: "Timezone"; value: System.State.timezoneLabel
         onClicked: Settings.State.openPage("timezone")
       }
+    }
+    Text {
+      width: parent.width
+      visible: !!Activity.State.audioError && !Activity.State.audioError.startsWith("Checking")
+      text: "Recording detection unavailable"
+      color: Qt.alpha(Shell.Theme.colors.text, 0.6)
+      font.family: Shell.Theme.fontFamily; font.pixelSize: 12
+      HoverHandler { id: detectionHover }
+      Activity.Hint { hovered: detectionHover.hovered; text: Activity.State.audioError }
+    }
+    Text {
+      width: parent.width
+      visible: !!Activity.State.sleepError && !Activity.State.sleepError.startsWith("Checking")
+      text: "Sleep blocker detection unavailable"
+      color: Qt.alpha(Shell.Theme.colors.text, 0.6)
+      font.family: Shell.Theme.fontFamily; font.pixelSize: 12
+      HoverHandler { id: sleepDetectionHover }
+      Activity.Hint { hovered: sleepDetectionHover.hovered; text: Activity.State.sleepError }
     }
     Text {
       width: parent.width; visible: !!System.State.error

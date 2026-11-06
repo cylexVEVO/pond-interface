@@ -10,6 +10,7 @@ Singleton {
   readonly property var defaults: ({lock: 0, display: 0, sleep: 0})
   readonly property var choices: [0, 60, 120, 180, 300, 600, 900, 1200, 1500, 1800, 2700, 3600, 7200, 10800, 14400, 18000]
   readonly property var options: choices.map(seconds => ({label: label(seconds), value: String(seconds)}))
+  property bool zenKeepAwake: false
   property var timeouts: ({pluggedIn: defaults, battery: defaults})
   readonly property string source: UPower.onBattery ? "battery" : "pluggedIn"
   readonly property var current: timeouts[source]
@@ -22,7 +23,12 @@ Singleton {
   }
   function set(power, key, seconds) {
     timeouts = Object.assign({}, timeouts, {[power]: Object.assign({}, timeouts[power], {[key]: seconds})});
-    file.setText(JSON.stringify(timeouts) + "\n");
+    save();
+  }
+
+  function setZenKeepAwake(value) { zenKeepAwake = value; save(); }
+  function save() {
+    file.setText(JSON.stringify(Object.assign({}, timeouts, {zenKeepAwake})) + "\n");
   }
 
   FileView {
@@ -34,6 +40,7 @@ Singleton {
     onLoaded: {
       try {
         const saved = JSON.parse(text());
+        root.zenKeepAwake = saved.zenKeepAwake === true;
         root.timeouts = {
           pluggedIn: Object.assign({}, root.defaults, saved.pluggedIn),
           battery: Object.assign({}, root.defaults, saved.battery)

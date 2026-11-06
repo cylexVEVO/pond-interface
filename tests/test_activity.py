@@ -37,10 +37,18 @@ class ActivityTests(unittest.TestCase):
         playing = node(1, 'Stream/Output/Audio')
         playing['info']['params'] = {'Props': [{'mute': True}]}
         streams = activity.streams([playing, node(2, 'Stream/Output/Audio', 'idle'),
-                                    node(3, 'Stream/Input/Video'), node(4, 'Audio/Source')])
+                                    node(3, 'Stream/Output/Video'), node(4, 'Audio/Source')])
         self.assertEqual(len(streams), 1)
         self.assertEqual(streams[0]['kind'], 'playback')
         self.assertTrue(streams[0]['muted'])
+
+    def test_camera_is_distinguished_from_screen_and_unknown_video(self):
+        objects = [node(1, 'Video/Source', **{'device.api': 'v4l2'}),
+                   node(2, 'Video/Source', **{'media.role': 'Screen'}),
+                   node(3, 'Stream/Input/Video'), node(4, 'Stream/Input/Video'),
+                   node(5, 'Stream/Input/Video'), link(1, 3), link(2, 4)]
+        self.assertEqual([s['kind'] for s in activity.streams(objects)],
+                         ['camera', 'screen', 'video'])
 
     def test_sleep_delays_are_not_conflated_with_blockers(self):
         rows = [('sleep', 'Pond', 'Lock before sleep', 'delay', 1000, 1),

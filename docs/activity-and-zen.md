@@ -1,55 +1,54 @@
-# Activity details and Zen
+# Quiet activity signals and Zen
 
-Click the sidebar’s Mic / Rec / Audio / Awake / ··· indicator for **Why is this happening?**
-The panel shows running PipeWire audio streams, app-reported names, and logind
-sleep/idle requests with their reasons and modes. It provides app focus, default
-microphone/output mute, media pause, sound controls, and lock/sleep settings.
-Mute does not revoke recording permission. Media pause targets Pond’s selected
-MPRIS player; app focus may fail for background services or unmatched app IDs.
+There is no activity dashboard or persistent launcher. Six-pixel capture lights
+use the existing outer margin above the clock: orange for audio, green for known
+camera capture, and a hollow blue-gray light for screen/unknown video capture.
+Hover for app names and capture type. They do not take clicks from the clock.
+In Zen the same lights sit centered beneath the exit control in an 8px row.
+A failed capture query uses a hollow gray light with an unavailable tooltip,
+never a microphone/camera-colored light or an extra control. Successful idle
+queries add nothing.
 
-**Super+Shift+Z** toggles Zen. This chord is unique in the shipped configuration
-and appears in Settings → Keyboard shortcuts and the manual. Personal bindings
-can override defaults; use the shortcut editor’s conflict detection when remapping.
-The non-repeating binding bypasses app shortcut inhibitors, including after
-remapping. Click the small × at the top left to exit without the keyboard.
+A small amber ring on a workspace app icon indicates a matching logind sleep or
+idle blocker. Hover the icon for its reason; clicking the icon still focuses its
+window. Brief `delay` requests (including Pond's lock-before-sleep safeguard) do
+not get marks. Weak blockers are described as conditional. A tiny speaker on the
+app icon marks running, unmuted playback; existing sound and media controls stay
+in their usual places.
 
-Zen removes the sidebar’s reserved screen space and hides its clock, workspaces,
-media, feedback and ordinary controls. Only exit, microphone/system-audio/uncertain capture (or unknown
-capture status), and low battery signals remain. Notifications are still received
-and saved according to their ordinary persistence rules, but their contents and
-arrival surfaces remain hidden. They are not replayed on exit. Zen closes open
-panels on entry. The previous expanded/collapsed preference stays intact.
+**Super+Shift+Z** toggles Zen and is remappable under Keyboard shortcuts. The
+manual reflects the current binding. Zen removes the sidebar's reserved space,
+hides normal sidebar contents and notification surfaces immediately, and retains
+only exit, capture dots and low battery. The previous sidebar layout is kept.
+Notifications retain their ordinary history behavior and are not replayed on exit.
 
-Stay-awake is an optional session-only preference in activity details, off by
-default. While Zen is active it temporarily removes Pond’s idle monitors for lock,
-display-off and suspend. It does not alter the saved timeouts for either power
-source. Exiting Zen, switching the option off, or restarting the shell restores
-normal timer behavior; manual lock/suspend remain available. This is scoped to
-Pond, not a system-wide inhibitor against other power managers or lid actions.
+**Settings → System → Stay awake in Zen** is off by default and saved alongside
+idle preferences. While Zen is active, it pauses Pond's automatic lock, display-off
+and sleep timers without changing their values for either power source. Exit or
+turn the option off to resume them. Manual lock/suspend remain available. This
+option does not block lid actions or other power managers.
 
-## Data limits
+## Detection limits
 
-- A snapshot is refreshed every three seconds, with a refresh on panel opening.
-- `pw-dump` exposes native and PulseAudio-compatible PipeWire streams. Only
-  running audio streams are shown; a running stream is not proof of audible sound.
-- Direct ALSA/BlueZ audio source links are labeled microphone. Sink monitors are
-  labeled system audio; virtual, filtered or otherwise unidentifiable sources
-  are labeled uncertain capture. App names are self-reported, browser tabs are
-  not identified, and devices outside the visible PipeWire graph are unknown.
-- `busctl --system --json=short … ListInhibitors` exposes logind requests. `delay`
-  means a bounded postponement, including Pond’s lock-before-sleep safeguard;
-  it is not an indefinite sleep blocker. `block` and `block-weak` remain distinct
-  in the details. Compositor-only idle-inhibit protocol clients are not exposed
-  by this implementation. Pond’s own configured idle timers are shown separately.
-- Missing commands, service failures and invalid responses show unavailable
-  status rather than an empty activity list. Neither query requires privilege
-  escalation or terminates another application.
+Snapshots refresh every three seconds. App names are self-reported. Running
+PipeWire streams do not prove audible output. Camera detection requires a visible
+V4L2/libcamera upstream node; screen sharing and unknown video sources are labeled
+separately. Direct device users outside PipeWire, browser tabs, virtual source
+origins and compositor-only inhibitors may not be identifiable. No dot is not a
+privacy guarantee. System settings report when capture detection is unavailable.
+App badges require matching an app's name or process executable to a window's app
+ID; unmatched background services and some sandboxed/portal requests cannot be
+marked on an app icon. Badges describe the app and appear on all its windows;
+they do not claim to identify a specific window. System settings also report
+unavailable sleep-blocker detection.
 
-API references: [PipeWire pw-dump](https://docs.pipewire.org/page_man_pw-dump_1.html)
-and [logind ListInhibitors](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.login1.html).
+The read-only query retains separate unavailable/error states rather than
+reporting a failed query as an empty successful result. See
+[PipeWire keys](https://docs.pipewire.org/devel/group__pw__keys.html) and
+[logind](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.login1.html).
 
-Validation: `python3 -m unittest discover -s tests -p 'test_*.py'` and
-`node --test tests/*.test.mjs`. Live visual and interaction checks require the
-Pond Quickshell modules and a niri/Wayland session. Exercise recording, playback,
-a logind sleep blocker, unavailable services, multi-output entry/exit, notification
-arrival during Zen, and plugged-in/battery idle settings with stay-awake toggled.
+Run `python3 -m unittest discover -s tests -p 'test_*.py'` and
+`node --test tests/*.test.mjs`. Live UI validation needs Pond's Quickshell modules
+and niri/Wayland. Check simultaneous microphone/camera dots, screen sharing,
+blocked versus delayed sleep, app matching, settings persistence, both sidebar
+sizes, and Zen notification privacy and restoration on all outputs.

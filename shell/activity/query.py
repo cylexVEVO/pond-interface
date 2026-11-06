@@ -2,6 +2,7 @@
 """Read-only activity snapshots. Never infer microphone use from media players."""
 import json
 import subprocess
+from pathlib import Path
 
 
 def run_json(command):
@@ -25,19 +26,27 @@ def streams(objects):
     for node_id, info in nodes.items():
         props = info.get('props', {})
         kind = props.get('media.class')
-        if kind not in ('Stream/Input/Audio', 'Stream/Output/Audio') or info.get('state') != 'running':
+        if kind not in ('Stream/Input/Audio', 'Stream/Output/Audio', 'Stream/Input/Video') or info.get('state') != 'running':
             continue
-        capture = kind == 'Stream/Input/Audio'
+        capture = kind != 'Stream/Output/Audio'
         sources = [nodes.get(n, {}).get('props', {}) for n in upstream.get(node_id, [])]
         # A sink monitor captures system audio, not a microphone. Virtual sources
         # remain explicitly uncertain; PipeWire cannot identify browser tabs.
         monitor = bool(sources) and all(p.get('media.class') == 'Audio/Sink' for p in sources)
         physical = any(p.get('media.class') == 'Audio/Source' and (p.get('device.api') or devices.get(int(p.get('device.id', -1)), {}).get('device.api')) in ('alsa', 'bluez5') for p in sources)
+        source_apis = [p.get('device.api') or devices.get(int(p.get('device.id', -1)), {}).get('device.api') for p in sources]
+        if kind == 'Stream/Input/Video':
+            # A video stream may be a portal screen share, not a camera.
+            camera = any(api in ('v4l2', 'libcamera') for api in source_apis)
+            screen = any(p.get('media.role') == 'Screen' for p in [props, *sources])
+            stream_kind = 'camera' if camera else 'screen' if screen else 'video'
+        else:
+            stream_kind = 'playback' if not capture else 'monitor' if monitor else 'microphone' if physical else 'capture'
         muted = next((p['mute'] for p in info.get('params', {}).get('Props', []) if 'mute' in p), None)
         result.append(dict(id=node_id, serial=str(props.get('object.serial', '')),
                            name=props.get('application.name') or props.get('node.description') or props.get('node.name') or 'Unknown app',
                            appId=props.get('application.id', ''),
-                           kind='playback' if not capture else 'monitor' if monitor else 'microphone' if physical else 'capture',
+                           kind=stream_kind,
                            muted=muted))
     return result
 
@@ -47,7 +56,11 @@ def inhibitors(rows):
     for what, who, why, mode, uid, pid in rows:
         if not {'sleep', 'idle'}.intersection(what.split(':')):
             continue
-        result.append(dict(name=who or 'Unknown app', reason=why or 'No reason supplied',
+        try:
+            app_id = Path('/proc', str(pid), 'exe').readlink().name
+        except OSError:
+            app_id = ''
+        result.append(dict(appId=app_id, name=who or 'Unknown app', reason=why or 'No reason supplied',
                            what=what, mode=mode, pid=pid))
     return result
 

@@ -559,6 +559,7 @@ Singleton {
         const info = agent ? {iconName: "", iconSource: ""} : _appInfo(w.appId);
         windowRecords.push({
           winId: w.id,
+          appId: w.appId,
           iconName: info.iconName,
           iconSource: agent ? "" : info.iconSource,
           dotState: !agent ? "" : _needsAttention(w.title) ? "attention"

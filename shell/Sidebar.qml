@@ -173,13 +173,10 @@ PanelWindow {
       Accessible.name: "Exit Zen mode"
       Accessible.onPressAction: Zen.active = false
     }
-    ActionButton {
-      width: 28; height: 28; text: Activity.State.audioError ? "?" : "●"
-      visible: Activity.State.capturing || !!Activity.State.audioError
-      onClicked: root.togglePopup("activity")
-      Accessible.role: Accessible.Button
-      Accessible.name: Activity.State.audioError || Activity.State.captureLabel + ". Show details"
-      Accessible.onPressAction: clicked()
+    Item {
+      width: 28; height: zenPrivacy.height
+      visible: Activity.State.privacyStreams.length > 0 || Activity.State.detectionFailed
+      Activity.PrivacyIndicator { id: zenPrivacy; anchors.horizontalCenter: parent.horizontalCenter }
     }
     ActionButton {
       width: 28; height: 28; text: "!"
@@ -189,6 +186,15 @@ PanelWindow {
       Accessible.name: "Low battery. Show details"
       Accessible.onPressAction: clicked()
     }
+  }
+
+  // Use the existing outer margin, outside the clock's clipped content and
+  // click target. No extra row or sidebar space is reserved for privacy lights.
+  Activity.PrivacyIndicator {
+    visible: !Zen.active && (Activity.State.privacyStreams.length > 0 || Activity.State.detectionFailed)
+    x: mainStack.x + root.cardWidth - width - 4
+    y: 1
+    z: 5
   }
 
   Column {
@@ -294,15 +300,6 @@ PanelWindow {
     anchors.bottomMargin: Theme.sidebarOuterMargin
     width: controls.width
     spacing: Theme.sidebarCardGap
-    ActionButton {
-      width: root.cardWidth
-      text: Activity.State.microphone ? "Mic" : Activity.State.capturing ? "Rec" : Activity.State.playing ? "Audio"
-          : Activity.State.blocking || Zen.holdingIdle ? "Awake" : "···"
-      onClicked: root.togglePopup("activity")
-      Accessible.role: Accessible.Button
-      Accessible.name: "Why is this happening? " + (Activity.State.capturing ? Activity.State.captureLabel + ". " : "") + "Activity and Zen mode"
-      Accessible.onPressAction: clicked()
-    }
     Screenshot.Preview {
       width: root.cardWidth
       outputName: root.screen.name

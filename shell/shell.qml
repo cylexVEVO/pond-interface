@@ -143,12 +143,6 @@ ShellRoot {
         windowSource: Qt.resolvedUrl("battery/Window.qml")
         initialProperties: ({bar: sidebar})
       }
-      DeferredWindow {
-        preload: false
-        requested: sidebar.popup === "activity"
-        windowSource: Qt.resolvedUrl("activity/Window.qml")
-        initialProperties: ({bar: sidebar})
-      }
       Battery.Notification { bar: sidebar; above: toast }
       PanelDismissWindow { bar: sidebar }
       DeferredWindow {

@@ -88,7 +88,7 @@ Settings.Modal {
       text: {
         const bind = Shortcuts.State.binds.find(b => b.action.includes('"zen" "toggle"'));
         const key = bind ? bind.key.replace(/^Mod\+/, "Super+") : "unassigned (set in Keyboard shortcuts)";
-        return "Zen mode · " + key + "\n\nA near-invisible sidebar for presenting or focusing. Click × at the top left or use the shortcut to exit. Microphone/capture and low-battery signals remain. Notification contents stay hidden; history remains available after exiting.\n\nOpen sidebar ··· (activity details) to enter Zen or optionally keep the session awake. Stay-awake pauses Pond’s automatic lock, display and sleep timers only while Zen is active. Saved settings and the previous sidebar layout return on exit.";
+        return "Zen mode · " + key + "\n\nA near-invisible sidebar for presenting or focusing. Click × at the top left or use the shortcut to exit. Small recording dots and low-battery signals remain. Notification contents stay hidden; history remains available after exiting.\n\nEnable Stay awake in Zen in Settings → System to optionally keep the session awake. Stay-awake pauses Pond’s automatic lock, display and sleep timers only while Zen is active. Saved settings and the previous sidebar layout return on exit.";
       }
     }
     Row {

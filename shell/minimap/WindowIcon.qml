@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell.Widgets
 import ".." as Shell
+import "../activity" as Activity
 
 // One live window marker. The same primitive scales between the 40px
 // expanded rail and the 32px collapsed stack while retaining app activation
@@ -15,6 +16,11 @@ Item {
   property bool lifted: false
   signal activated(var windowId)
 
+  readonly property var sleepRequests: Activity.State.sleepRequests(windowData.appId || "")
+  readonly property var playback: Activity.State.playbackStreams(windowData.appId || "")
+  readonly property string activityDescription: [
+      sleepRequests.map(i => Activity.State.inhibitionDescription(i)).join("\n"),
+      Activity.State.describe(playback)].filter(s => s !== "").join("\n")
   readonly property bool hovered: pointer.containsMouse
 
   implicitWidth: controlSize
@@ -78,6 +84,25 @@ Item {
       scale: root.controlSize / Shell.Theme.workspaceControlSize
           * (root.lifted ? Shell.Theme.workspaceDragGlyphScale : 1)
     }
+  }
+
+  // A quiet amber ring belongs to the app causing the sleep inhibition.
+  Rectangle {
+    anchors { right: parent.right; bottom: parent.bottom; margins: 3 }
+    width: 7; height: 7; radius: 3.5
+    color: Shell.PanelStyle.surface
+    border.width: 1.5; border.color: "#F5AE62"
+    visible: root.sleepRequests.length > 0
+  }
+  Image {
+    anchors { left: parent.left; bottom: parent.bottom; margins: 2 }
+    width: 8; height: 8
+    source: "../assets/sound.svg"
+    visible: root.playback.length > 0
+  }
+  Activity.Hint {
+    hovered: pointer.containsMouse && !!root.activityDescription
+    text: root.activityDescription
   }
 
   MouseArea {
