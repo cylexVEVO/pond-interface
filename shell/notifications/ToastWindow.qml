@@ -24,7 +24,7 @@ PanelWindow {
   readonly property int shadowPadding: 55
 
   screen: bar.screen
-  visible: requested || reveal > 0.001
+  visible: !Shell.Zen.active && (requested || reveal > 0.001)
   color: "transparent"
   BackgroundEffect.blurRegion: Shell.Theme.translucent ? toastBlur : null
   onRevealChanged: toastBlur.changed()

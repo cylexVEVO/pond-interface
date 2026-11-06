@@ -35,7 +35,7 @@ PanelWindow {
 
 
   screen: bar.screen
-  visible: requested || reveal > 0.001
+  visible: !Shell.Zen.active && (requested || reveal > 0.001)
   color: "transparent"
   BackgroundEffect.blurRegion: Shell.Theme.translucent ? panelBlur : null
   Region {

@@ -15,6 +15,7 @@ Singleton {
   signal reloaded
 
   readonly property var ipcNames: ({
+    "zen toggle": "Toggle Zen Mode",
     "volume increase": "Raise Volume",
     "volume decrease": "Lower Volume",
     "volume muteOutput": "Mute Output",

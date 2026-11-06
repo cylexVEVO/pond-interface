@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Widgets
 import ".." as Settings
 import "../.." as Shell
+import "../shortcuts" as Shortcuts
 
 Settings.Modal {
   id: root
@@ -43,7 +44,7 @@ Settings.Modal {
   Item {
     id: manual
     objectName: "manualContent"
-    width: 500; height: 3422
+    width: 500; height: zenNote.y + zenNote.implicitHeight + 30
     Item {
       width: 500; height: 1538
       clip: true
@@ -79,6 +80,17 @@ Settings.Modal {
       }
     }
 
+    Text {
+      id: zenNote
+      x: 30; y: 3422; width: 440
+      wrapMode: Text.Wrap; textFormat: Text.PlainText
+      color: Shell.Theme.colors.text; font.family: Shell.Theme.fontFamily; font.pixelSize: 14
+      text: {
+        const bind = Shortcuts.State.binds.find(b => b.action.includes('"zen" "toggle"'));
+        const key = bind ? bind.key.replace(/^Mod\+/, "Super+") : "unassigned (set in Keyboard shortcuts)";
+        return "Zen mode · " + key + "\n\nA near-invisible sidebar for presenting or focusing. Click × at the top left or use the shortcut to exit. Microphone/capture and low-battery signals remain. Notification contents stay hidden; history remains available after exiting.\n\nOpen sidebar ··· (activity details) to enter Zen or optionally keep the session awake. Stay-awake pauses Pond’s automatic lock, display and sleep timers only while Zen is active. Saved settings and the previous sidebar layout return on exit.";
+      }
+    }
     Row {
       x: 155; y: 3332; spacing: 10
       FooterButton { service: "shortcuts" }

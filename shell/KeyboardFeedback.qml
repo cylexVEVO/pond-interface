@@ -29,6 +29,7 @@ Item {
   LazyLoader {
     id: feedback
     PanelWindow {
+      visible: !Zen.active
       screen: root.screen
       color: "transparent"
       BackgroundEffect.blurRegion: Theme.translucent ? card.blurRegion : null

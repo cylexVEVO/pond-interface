@@ -14,7 +14,7 @@ Singleton {
   property string transientId: ""
   property string transientOutputName: ""
   readonly property var currentTransient: _findById(activeNotifications, transientId)
-  readonly property bool transientVisible: transientId !== "" && currentTransient !== null && !panelOpen
+  readonly property bool transientVisible: transientId !== "" && currentTransient !== null && !panelOpen && !Shell.Zen.active
   property bool panelOpen: false
   property string panelOutputName: ""
   readonly property int notificationCount: historyNotifications.length
@@ -122,7 +122,7 @@ Singleton {
     const id = Quickshell.processId + ":" + notification.id;
     if (!live[id]) live[id] = watcher.createObject(root, { notification, notificationId: id });
     live[id].refresh();
-    if (!notification.lastGeneration && !panelOpen) {
+    if (!notification.lastGeneration && !panelOpen && !Shell.Zen.active) {
       transientOutputName = Shell.NiriMsg.focusedOutputName || Quickshell.screens[0]?.name || "";
       transientId = id;
     }
@@ -270,6 +270,7 @@ Singleton {
   }
 
   function togglePanel(outputName) {
+    if (Shell.Zen.active) return;
     if (panelOpen && panelOutputName === outputName) { closePanel(); return; }
     transientId = "";
     panelOutputName = outputName;

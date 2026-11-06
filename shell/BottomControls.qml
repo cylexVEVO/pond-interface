@@ -131,7 +131,7 @@ Card {
   }
 
   LazyLoader {
-    active: root.collapsedVolumeVisible
+    active: root.collapsedVolumeVisible && !Zen.active
     PanelWindow {
       id: volumeWindow
       readonly property real cardX: root.besideSidebar ? Theme.sidebarOuterMargin + root.width + 4

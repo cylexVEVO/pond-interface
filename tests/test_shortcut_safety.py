@@ -11,6 +11,19 @@ SPEC.loader.exec_module(shortcuts)
 
 
 class ShortcutSafetyTests(unittest.TestCase):
+    def test_zen_default_is_unique_and_escape_flag_survives_remapping(self):
+        root = Path(__file__).resolve().parents[1]
+        binds = [bind for file in (root / "config/niri").rglob("*.kdl")
+                 for bind in shortcuts.scan_binds(file.read_text())]
+        zen = next(bind for bind in binds if '\"zen\" \"toggle\"' in bind['action'])
+        self.assertEqual(sum(shortcuts.canonical(b['key']) == shortcuts.canonical(zen['key'])
+                             for b in binds), 1)
+        self.assertFalse(zen['flags']['repeat'])
+        self.assertFalse(zen['flags']['allow-inhibiting'])
+        saved = shortcuts.format_bind('Mod+Shift+Y', zen['title'], zen['flags'], zen['action'])
+        self.assertIn('allow-inhibiting=false', saved)
+        self.assertIn('repeat=false', saved)
+
     def test_typing_and_navigation_require_modifier(self):
         for key in ("Space", "a", "1", "Slash", "Return", "Tab", "BackSpace",
                     "Delete", "Escape", "Left", "Home", "KP_Enter", "eacute"):

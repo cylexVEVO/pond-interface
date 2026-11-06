@@ -11,7 +11,7 @@ PanelWindow {
   required property var above
 
   screen: bar.screen
-  visible: Battery.State.alert > 0 && bar.collapseProgress > 0.42
+  visible: !Shell.Zen.active && Battery.State.alert > 0 && bar.collapseProgress > 0.42
   color: "transparent"
   implicitWidth: card.width + 68
   implicitHeight: card.height + 145

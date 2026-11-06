@@ -4,6 +4,12 @@ Rectangle {
   property string text: ""
   property real textOpacity: 0.8
   property bool interactive: true
+  activeFocusOnTab: interactive
+  Accessible.role: Accessible.Button
+  Accessible.name: text
+  Accessible.onPressAction: if (interactive) clicked()
+  Keys.onSpacePressed: if (interactive) clicked()
+  Keys.onReturnPressed: if (interactive) clicked()
   signal clicked
   implicitWidth: 146
   implicitHeight: 40

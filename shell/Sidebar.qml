@@ -10,6 +10,8 @@ import "media" as Media
 import "minimap" as Minimap
 import "notifications" as Notifications
 import "installs" as Installs
+import "activity" as Activity
+import "battery" as Battery
 import Pond.Screenshot as Screenshot
 
 PanelWindow {
@@ -111,7 +113,7 @@ PanelWindow {
   }
 
   color: "transparent"
-  BackgroundEffect.blurRegion: Theme.translucent ? cardBlur : null
+  BackgroundEffect.blurRegion: Theme.translucent && !Zen.active ? cardBlur : null
   onHeightChanged: cardBlur.changed()
   Region {
     id: cardBlur
@@ -125,14 +127,14 @@ PanelWindow {
       audioPanel.presented ? panelX + audioPanel.width + 67 : 0,
       bluetoothPanel.presented ? panelX + bluetoothPanel.width + 67 : 0))
   mask: Region {
-    width: root.panelOpen ? root.implicitWidth : Math.ceil(Theme.sidebarOuterMargin + Math.max(root.cardWidth,
+    width: Zen.active ? 36 : root.panelOpen ? root.implicitWidth : Math.ceil(Theme.sidebarOuterMargin + Math.max(root.cardWidth,
         workspacesCard.width, mediaCard.width, controls.width) + 8)
-    height: root.height
+    height: Zen.active ? zenControls.y + zenControls.height : root.height
     // Let the background receive clicks between the card stacks.
     Region {
       y: Math.ceil(mainStack.y + mainStack.height)
       width: root.width
-      height: Math.max(0, Math.floor(bottomStack.y) - y)
+      height: Zen.active ? 0 : Math.max(0, Math.floor(bottomStack.y) - y)
       intersection: Intersection.Subtract
     }
     // Region.item can retain the opening animation's scaled bounds and leave
@@ -150,12 +152,48 @@ PanelWindow {
   WlrLayershell.keyboardFocus: workspacesCard.dragSession.active
       ? WlrKeyboardFocus.Exclusive : panelOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
   WlrLayershell.exclusionMode: ExclusionMode.Normal
-  exclusiveZone: Theme.sidebarOuterMargin + (expanded
+  exclusiveZone: Zen.active ? 0 : Theme.sidebarOuterMargin + (expanded
       ? Theme.sidebarCardExpandedWidth : Theme.sidebarCardCollapsedWidth)
   Behavior on collapseProgress { Motion {} }
 
+  Connections {
+    target: Zen
+    function onActiveChanged() { root.dismissPanels(); root.popup = ""; }
+  }
+  Column {
+    id: zenControls
+    visible: Zen.active
+    x: 4; y: 8; spacing: 4
+    IconButton {
+      width: 28; height: 28
+      iconSource: "assets/close.svg"; iconWidth: 10; iconHeight: 10
+      restingOpacity: 0.45
+      onClicked: Zen.active = false
+      Accessible.role: Accessible.Button
+      Accessible.name: "Exit Zen mode"
+      Accessible.onPressAction: Zen.active = false
+    }
+    ActionButton {
+      width: 28; height: 28; text: Activity.State.audioError ? "?" : "●"
+      visible: Activity.State.capturing || !!Activity.State.audioError
+      onClicked: root.togglePopup("activity")
+      Accessible.role: Accessible.Button
+      Accessible.name: Activity.State.audioError || Activity.State.captureLabel + ". Show details"
+      Accessible.onPressAction: clicked()
+    }
+    ActionButton {
+      width: 28; height: 28; text: "!"
+      visible: Battery.State.low
+      onClicked: root.togglePopup("battery")
+      Accessible.role: Accessible.Button
+      Accessible.name: "Low battery. Show details"
+      Accessible.onPressAction: clicked()
+    }
+  }
+
   Column {
     id: mainStack
+    visible: !Zen.active
     x: Theme.sidebarOuterMargin
     y: Theme.sidebarOuterMargin
     spacing: Theme.sidebarCardGap
@@ -249,12 +287,22 @@ PanelWindow {
 
   Column {
     id: bottomStack
+    visible: !Zen.active
     onYChanged: cardBlur.changed()
     x: Theme.sidebarOuterMargin
     anchors.bottom: parent.bottom
     anchors.bottomMargin: Theme.sidebarOuterMargin
     width: controls.width
     spacing: Theme.sidebarCardGap
+    ActionButton {
+      width: root.cardWidth
+      text: Activity.State.microphone ? "Mic" : Activity.State.capturing ? "Rec" : Activity.State.playing ? "Audio"
+          : Activity.State.blocking || Zen.holdingIdle ? "Awake" : "···"
+      onClicked: root.togglePopup("activity")
+      Accessible.role: Accessible.Button
+      Accessible.name: "Why is this happening? " + (Activity.State.capturing ? Activity.State.captureLabel + ". " : "") + "Activity and Zen mode"
+      Accessible.onPressAction: clicked()
+    }
     Screenshot.Preview {
       width: root.cardWidth
       outputName: root.screen.name

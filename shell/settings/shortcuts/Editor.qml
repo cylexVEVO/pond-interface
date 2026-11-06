@@ -74,10 +74,12 @@ Settings.Modal {
     if (root.chord === "") { root.startRecording(); return; }
     if (!root.valid) return;
     const flags = {};
-    if (root.repeatAllowed) flags.repeat = true;
+    flags.repeat = root.repeatAllowed;
     // Not editable here, but an edit must not drop it.
     if (root.editing && root.editing.flags && root.editing.flags["allow-when-locked"])
       flags["allow-when-locked"] = true;
+    if (root.editing?.flags?.["allow-inhibiting"] === false)
+      flags["allow-inhibiting"] = false;
     root.saving = true;
     Shortcuts.State.saveShortcut(
         root.editing ? root.editing.key : "",

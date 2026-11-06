@@ -17,6 +17,7 @@ import Pond.System
 ShellRoot {
   id: root
   property bool expanded: true
+  readonly property bool zenActive: Zen.active
 
   // Register the tray host even before its settings UI is opened.
   readonly property var trayItems: SystemTray.items
@@ -44,7 +45,7 @@ ShellRoot {
       display: ["niri", "msg", "action", "power-off-monitors"],
       sleep: ["python3", Quickshell.shellDir + "/settings/session.py", "suspend"]
     })
-    model: Object.keys(commands).filter(key => System.Idle.current[key] > 0)
+    model: Object.keys(commands).filter(key => !Zen.holdingIdle && System.Idle.current[key] > 0)
         .map(key => ({timeout: System.Idle.current[key], command: commands[key]}))
     delegate: IdleMonitor {
       required property var modelData
@@ -80,7 +81,7 @@ ShellRoot {
 
   IpcHandler {
     target: "sidebar"
-    function toggle() { root.expanded = !root.expanded; }
+    function toggle() { if (Zen.active) Zen.active = false; else root.expanded = !root.expanded; }
   }
 
   IpcHandler {
@@ -124,8 +125,8 @@ ShellRoot {
       Sidebar {
         id: sidebar
         screen: modelData
-        expanded: root.expanded
-        onToggleRequested: root.expanded = !root.expanded
+        expanded: root.expanded && !Zen.active
+        onToggleRequested: { if (Zen.active) Zen.active = false; else root.expanded = !root.expanded; }
       }
       Notifications.ToastWindow { id: toast; bar: sidebar }
       DeferredWindow {
@@ -140,6 +141,12 @@ ShellRoot {
         preload: notificationCenter.settled
         requested: sidebar.popup === "battery"
         windowSource: Qt.resolvedUrl("battery/Window.qml")
+        initialProperties: ({bar: sidebar})
+      }
+      DeferredWindow {
+        preload: false
+        requested: sidebar.popup === "activity"
+        windowSource: Qt.resolvedUrl("activity/Window.qml")
         initialProperties: ({bar: sidebar})
       }
       Battery.Notification { bar: sidebar; above: toast }

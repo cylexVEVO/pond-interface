@@ -96,7 +96,7 @@ def scan_binds(text):
                         value = value.strip('"')
                     if key == "hotkey-overlay-title":
                         title = value
-                    elif key in ("repeat", "allow-when-locked"):
+                    elif key in ("repeat", "allow-when-locked", "allow-inhibiting"):
                         flags[key] = value
                 elif not chord:
                     chord = token
@@ -245,6 +245,8 @@ def format_bind(key, title, flags, action):
         line += " repeat=false"
     if flags.get("allow-when-locked"):
         line += " allow-when-locked=true"
+    if flags.get("allow-inhibiting") is False:
+        line += " allow-inhibiting=false"
     if title:
         line += " hotkey-overlay-title=" + json.dumps(title)
     return line + " { " + action.strip() + " }"
