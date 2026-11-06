@@ -21,7 +21,8 @@ Row {
       required property var modelData
       readonly property var streams: Activity.State.privacyStreams.filter(s => modelData.kinds.includes(s.kind))
       shown: modelData.error ? Activity.State.detectionFailed : streams.length > 0
-      width: 10 * reveal; height: 8
+      // Keep the layout slot fixed until Presence finishes fading out.
+      width: 10; height: 8
       Accessible.role: Accessible.StaticText
       Accessible.name: modelData.error ? "Recording detection unavailable" : Activity.State.describe(streams)
       Rectangle {

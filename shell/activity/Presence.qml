@@ -8,6 +8,7 @@ Item {
   property real reveal: shown ? 1 : 0
   visible: reveal > 0.001
   opacity: reveal
+  transformOrigin: Item.Center
   scale: 0.65 + 0.35 * reveal
   enabled: shown
   Behavior on reveal {
