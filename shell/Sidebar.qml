@@ -151,9 +151,18 @@ PanelWindow {
   WlrLayershell.namespace: "pond-sidebar"
   WlrLayershell.keyboardFocus: workspacesCard.dragSession.active
       ? WlrKeyboardFocus.Exclusive : panelOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-  WlrLayershell.exclusionMode: ExclusionMode.Normal
-  exclusiveZone: Zen.active ? 0 : Theme.sidebarOuterMargin + (expanded
+  readonly property int reservedWidth: Zen.active ? 0 : Theme.sidebarOuterMargin + (expanded
       ? Theme.sidebarCardExpandedWidth : Theme.sidebarCardCollapsedWidth)
+  onReservedWidthChanged: syncReservation()
+  Component.onCompleted: syncReservation()
+  function syncReservation() {
+    // Setting exclusiveZone also sets exclusionMode to Normal. Apply the mode
+    // last so Zen is an overlay with no reserved work area, regardless of the
+    // order in which expanded and Zen.active change.
+    root.exclusiveZone = root.reservedWidth;
+    root.exclusionMode = Zen.active ? ExclusionMode.Ignore : ExclusionMode.Normal;
+    root.contentItem.Window.window?.requestUpdate();
+  }
   Behavior on collapseProgress { Motion {} }
 
   Connections {
