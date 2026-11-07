@@ -1,0 +1,12 @@
+diff --git a/src/layout/scrolling.rs b/src/layout/scrolling.rs
+index 007bcaf..8e0c975 100644
+--- a/src/layout/scrolling.rs
++++ b/src/layout/scrolling.rs
+@@ -2426,6 +2426,7 @@ impl<W: LayoutElement> ScrollingSpace<W> {
+                     let layout = WindowLayout {
+                         // Our indices are 1-based, consistent with the actions.
+                         pos_in_scrolling_layout: Some((col_idx + 1, tile_idx + 1)),
++                        tile_pos_in_workspace_view: Some((self.column_x(col_idx) - self.view_pos(), 0.)),
+                         ..tile.ipc_layout_template()
+                     };
+                     (tile, layout)

@@ -20,6 +20,11 @@ in their usual places.
 manual reflects the current binding. Zen removes the sidebar's reserved space,
 hides normal sidebar contents and notification surfaces immediately, and retains
 only exit, capture dots and low battery. The previous sidebar layout is kept.
+The visual surface stays an overlay; a separate input-transparent surface reserves
+space in ordinary modes and unmaps in Zen. On niri 26.04 (`8ed0da4`), fully closing
+the old gap also requires the [niri viewport patch](../config/niri/patches/README.md).
+Without it, niri can preserve the old scroll position even after the reservation
+has been released.
 Notifications retain their ordinary history behavior and are not replayed on exit.
 
 **Settings → System → Stay awake in Zen** is off by default and saved alongside

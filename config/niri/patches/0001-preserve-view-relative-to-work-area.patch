@@ -1,0 +1,29 @@
+diff --git a/src/layout/scrolling.rs b/src/layout/scrolling.rs
+index 007bcaf..31f729e 100644
+--- a/src/layout/scrolling.rs
++++ b/src/layout/scrolling.rs
+@@ -324,6 +324,24 @@ impl<W: LayoutElement> ScrollingSpace<W> {
+             data.update(column);
+         }
+ 
++        // Keep the viewport relative to the usable area's left edge when a
++        // layer-shell panel changes its reservation. Otherwise a shrinking
++        // reservation leaves stale empty space until an unrelated view move.
++        let left_delta = self.working_area.loc.x - working_area.loc.x;
++        if self
++            .columns
++            .get(self.active_column_idx)
++            .is_some_and(|col| !col.sizing_mode().is_fullscreen())
++        {
++            self.view_offset.offset(left_delta);
++        }
++        if let Some(offset) = &mut self.view_offset_to_restore {
++            *offset += left_delta;
++        }
++        if let Some(offset) = &mut self.activate_prev_column_on_removal {
++            *offset += left_delta;
++        }
++
+         self.view_size = view_size;
+         self.working_area = working_area;
+         self.parent_area = parent_area;

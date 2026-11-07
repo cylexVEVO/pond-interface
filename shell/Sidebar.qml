@@ -121,10 +121,9 @@ PanelWindow {
       installsCard.blurRegion, controls.blurRegion,
       wifiPanel.blurRegion, audioPanel.blurRegion, bluetoothPanel.blurRegion].filter(Boolean)
   }
-  // Ordinary collapse keeps a stable surface for the card animation. Zen
-  // also resizes the surface, sending a layer geometry/configure update when
-  // releasing the exclusive zone instead of changing only reservation state.
-  implicitWidth: Zen.active ? 36 : Math.ceil(Math.max(Theme.sidebarOuterMargin + Theme.sidebarCardExpandedWidth + Theme.sidebarFadeWidth,
+  // Cards and popouts share a stable overlay surface. Reservation is handled
+  // by its own surface below, independent of visual animation and input masks.
+  implicitWidth: Math.ceil(Math.max(Theme.sidebarOuterMargin + Theme.sidebarCardExpandedWidth + Theme.sidebarFadeWidth,
       wifiPanel.presented ? panelX + wifiPanel.width + 67 : 0,
       audioPanel.presented ? panelX + audioPanel.width + 67 : 0,
       bluetoothPanel.presented ? panelX + bluetoothPanel.width + 67 : 0))
@@ -155,15 +154,10 @@ PanelWindow {
       ? WlrKeyboardFocus.Exclusive : panelOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
   readonly property int reservedWidth: Zen.active ? 0 : Theme.sidebarOuterMargin + (expanded
       ? Theme.sidebarCardExpandedWidth : Theme.sidebarCardCollapsedWidth)
-  onReservedWidthChanged: syncReservation()
-  Component.onCompleted: syncReservation()
-  function syncReservation() {
-    // Setting exclusiveZone also sets exclusionMode to Normal. Apply the mode
-    // last so Zen is an overlay with no reserved work area, regardless of the
-    // order in which expanded and Zen.active change.
-    root.exclusiveZone = root.reservedWidth;
-    root.exclusionMode = Zen.active ? ExclusionMode.Ignore : ExclusionMode.Normal;
-    root.contentItem.Window.window?.requestUpdate();
+  exclusionMode: ExclusionMode.Ignore
+  SidebarReservation {
+    screen: root.screen
+    reservedWidth: root.reservedWidth
   }
   Behavior on collapseProgress { Motion {} }
 
