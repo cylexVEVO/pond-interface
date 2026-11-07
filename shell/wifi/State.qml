@@ -18,6 +18,7 @@ Singleton {
   readonly property var connectedWiredAdapters: wiredAdapters.filter(d => d.connected)
   readonly property bool wiredConnected: connectedWiredAdapters.length > 0
   readonly property var wiredNetworks: wiredAdapters.map(d => ({
+      key: "wired:" + d.name,
       name: d.network?.name || "Ethernet", device: d.name, wired: true, connected: d.connected
   }))
   readonly property bool wifiConnected: enabled && Networking.wifiHardwareEnabled
@@ -35,7 +36,8 @@ Singleton {
   readonly property string connectedSsid: networks.find(n => n.connected)?.ssid || ""
   readonly property var networks: (adapter ? adapter.networks.values : [])
       .filter(n => n.connected || n.signalStrength > 0)
-      .map(n => ({ssid: n.name, signal: n.signalStrength * 100,
+      .map(n => ({key: "wifi:" + n.name + ":" + n.security,
+                 ssid: n.name, signal: n.signalStrength * 100,
                  bars: n.signalStrength >= 0.6 ? 3 : n.signalStrength >= 0.35 ? 2 : 1,
                  locked: n.security !== WifiSecurityType.Open, connected: n.connected,
                  enterprise: n.security === WifiSecurityType.WpaEap

@@ -11,6 +11,8 @@ DeviceList {
       ? Wifi.State.statusText : ""
   title: "Network"
   viewportHeight: 306
+  // Preserve delegates across state updates so toggle animations can finish.
+  deviceKey: "key"
   devices: Wifi.State.wiredNetworks.concat(Wifi.State.enabled ? Wifi.State.networks : [])
   emptyText: !Wifi.State.adapter ? "No Wi-Fi adapter found."
       : !Wifi.State.enabled ? "Wi-Fi is off."
