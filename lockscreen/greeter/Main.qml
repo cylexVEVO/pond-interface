@@ -46,8 +46,8 @@ Item {
     // Start it immediately so a finger is enough. A password typed during
     // that scan is sent when the scan ends; a second login() while auth is
     // active is discarded by the daemon.
-    function beginFingerprint() {
-        if (!fingerprintLogin.ready || requestPending || ui.authenticationPending || queuedPassword.length || fastFingerprintFailures >= 3)
+    function beginFingerprint(explicitRequest = false) {
+        if (!(explicitRequest ? fingerprintLogin.available : fingerprintLogin.ready) || requestPending || ui.authenticationPending || queuedPassword.length || fastFingerprintFailures >= 3)
             return;
         if (!selectedUser || sessionIndex < 0 || sessionIndex >= desktops.count)
             return;
@@ -131,6 +131,15 @@ Item {
         compositorIndex: root.sessionIndex
         onUserStepRequested: direction => root.selectUser(direction)
         onCompositorRequested: index => root.selectSession(index)
+    }
+    Frontend.FingerprintPrompt {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 96
+        visible: fingerprintLogin.available && !fingerprintLogin.ready
+            && !root.requestPending && !ui.authenticationPending && ui.active
+        enabled: visible
+        onClicked: root.beginFingerprint(true)
     }
     Timer {
         id: fingerprintArm

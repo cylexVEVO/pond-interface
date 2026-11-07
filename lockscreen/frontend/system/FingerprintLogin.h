@@ -18,6 +18,7 @@ class FingerprintLogin : public QObject {
     QML_ELEMENT
     Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
     Q_PROPERTY(bool ready READ ready NOTIFY readyChanged)
+    Q_PROPERTY(bool available READ available NOTIFY availableChanged)
 
 public:
     explicit FingerprintLogin(QObject *parent = nullptr)
@@ -32,6 +33,7 @@ public:
 
     QString userName() const { return m_userName; }
     bool ready() const { return m_ready; }
+    bool available() const { return m_available; }
     void setUserName(const QString &name) {
         if (m_userName == name)
             return;
@@ -43,6 +45,7 @@ public:
 signals:
     void userNameChanged();
     void readyChanged();
+    void availableChanged();
 
 private:
     void setReady(bool ready) {
@@ -52,9 +55,17 @@ private:
         emit readyChanged();
     }
 
+    void setAvailable(bool available) {
+        if (m_available == available)
+            return;
+        m_available = available;
+        emit availableChanged();
+    }
+
     void refresh() {
         const auto generation = ++m_generation;
         setReady(false);
+        setAvailable(false);
         if (!m_watcher.files().contains(m_pamPath))
             m_watcher.addPath(m_pamPath);
         QFile pam(m_pamPath);
@@ -86,8 +97,15 @@ private:
             connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, generation](auto *call) {
                 QDBusPendingReply<QStringList> reply = *call;
                 call->deleteLater();
-                if (generation == m_generation)
-                    setReady(!reply.isError() && !reply.value().isEmpty());
+                if (generation != m_generation)
+                    return;
+                const bool enrolled = !reply.isError() && !reply.value().isEmpty();
+                // The default fprintd policy prevents SDDM's unprivileged greeter
+                // from listing another user's prints. Offer an explicit scan in
+                // that case; never weaken the policy or submit unattended PAM.
+                setAvailable(enrolled || reply.error().name()
+                    == QStringLiteral("net.reactivated.Fprint.Error.PermissionDenied"));
+                setReady(enrolled);
             });
         });
     }
@@ -98,4 +116,5 @@ private:
     QString m_userName;
     quint64 m_generation = 0;
     bool m_ready = false;
+    bool m_available = false;
 };

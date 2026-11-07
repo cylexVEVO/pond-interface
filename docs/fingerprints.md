@@ -16,9 +16,13 @@ For SDDM login, use your distribution's supported PAM configuration mechanism to
 add `auth sufficient pam_fprintd.so max-tries=3 timeout=30` before password
 authentication in /etc/pam.d/sddm. Preserve all existing account and session rules.
 Pond deliberately does not overwrite the distribution's SDDM PAM stack. The
-greeter starts that fingerprint attempt as soon as the login screen appears, so
-a matching finger logs in without typing a password. Without this configuration
-the empty attempt fails normally and the password field still works. SDDM
+greeter checks the configured PAM rule and connected reader before offering a
+scan. When fprintd permits checking enrollment, an enrolled user's scan starts
+automatically. Its default policy prevents the unprivileged SDDM greeter from
+reading another user's enrollment; in that case, use **Fingerprint unlock** to
+start one scan explicitly. Keep the default PolicyKit policy. Without configured
+fingerprint PAM or a connected reader, the greeter makes no empty login attempts.
+Unattended retries stop after three failures. SDDM
 serializes PAM authentication, so a password typed during a scan is submitted
 when that scan finishes. Fingerprint login does not supply a password to unlock
 a password-encrypted keyring.

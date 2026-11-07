@@ -3,13 +3,18 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
-class Reader : public QObject {
+class Reader : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "net.reactivated.Fprint.Device")
 public:
     QMap<QString, QStringList> fingers;
+    bool denied = false;
 public slots:
-    QStringList ListEnrolledFingers(const QString &user) { return fingers.value(user); }
+    QStringList ListEnrolledFingers(const QString &user) {
+        if (denied)
+            sendErrorReply("net.reactivated.Fprint.Error.PermissionDenied", "Not authorized");
+        return fingers.value(user);
+    }
 };
 
 class Manager : public QObject, protected QDBusContext {
@@ -49,6 +54,7 @@ private slots:
         manager.connected = false;
         manager.queries = 0;
         reader.fingers.clear();
+        reader.denied = false;
     }
     void passwordOnlyPamNeverProbes() {
         configure("# auth sufficient pam_fprintd.so\nauth include system-login\n");
@@ -73,6 +79,15 @@ private slots:
         status.setUserName("alice");
         QTRY_COMPARE(manager.queries, 1);
         QTest::qWait(50);
+        QVERIFY(!status.ready());
+    }
+    void unprivilegedGreeterOffersExplicitScanOnly() {
+        configure();
+        manager.connected = true;
+        reader.denied = true;
+        FingerprintLogin status(bus, pamPath());
+        status.setUserName("alice");
+        QTRY_VERIFY(status.available());
         QVERIFY(!status.ready());
     }
     void enrolledUserCanArmLogin() {
