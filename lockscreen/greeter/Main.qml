@@ -47,7 +47,7 @@ Item {
     // that scan is sent when the scan ends; a second login() while auth is
     // active is discarded by the daemon.
     function beginFingerprint() {
-        if (requestPending || ui.authenticationPending || queuedPassword.length || fastFingerprintFailures >= 3)
+        if (!fingerprintLogin.ready || requestPending || ui.authenticationPending || queuedPassword.length || fastFingerprintFailures >= 3)
             return;
         if (!selectedUser || sessionIndex < 0 || sessionIndex >= desktops.count)
             return;
@@ -90,6 +90,10 @@ Item {
         onObjectRemoved: root.sessionsRevision++
     }
     NetworkStatus { id: network }
+    FingerprintLogin {
+        id: fingerprintLogin
+        userName: root.selectedUser?.name || ""
+    }
     QtObject {
         id: power
         function shutdown() {
@@ -132,7 +136,7 @@ Item {
         id: fingerprintArm
         interval: 400
         repeat: true
-        running: !root.requestPending && !ui.authenticationPending && !root.queuedPassword.length
+        running: fingerprintLogin.ready && !root.requestPending && !ui.authenticationPending && !root.queuedPassword.length
             && root.fastFingerprintFailures < 3 && !deferredPassword.running
         onTriggered: root.beginFingerprint()
     }
@@ -184,7 +188,6 @@ Item {
             if (!root.requestPending) return;
             const password = root.queuedPassword;
             const wasFingerprint = root.fingerprintAttempt;
-            const accepted = root.attemptAccepted;
             root.queuedPassword = "";
             root.inFlightPassword = "";
             root.fingerprintAttempt = false;
@@ -199,10 +202,9 @@ Item {
                 ui.authenticationFailed();
                 return;
             }
-            if (accepted)
-                root.fastFingerprintFailures = 0;
-            else
-                root.fastFingerprintFailures++;
+            // PAM info messages also occur for password failures; they do not
+            // prove that a fingerprint scan happened. Bound unattended retries.
+            root.fastFingerprintFailures++;
         }
         function onSocketDisconnected() {
             root.requestPending = false;

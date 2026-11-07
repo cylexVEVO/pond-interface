@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.21)
+project(fingerprint-login-test LANGUAGES CXX)
+set(CMAKE_AUTOMOC ON)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core DBus Qml Test)
+add_executable(fingerprint-login-test ../fingerprint-login.cpp ../../lockscreen/frontend/system/FingerprintLogin.h)
+target_include_directories(fingerprint-login-test PRIVATE ../../lockscreen/frontend/system)
+target_link_libraries(fingerprint-login-test PRIVATE Qt6::Core Qt6::DBus Qt6::Qml Qt6::Test)
