@@ -121,8 +121,10 @@ PanelWindow {
       installsCard.blurRegion, controls.blurRegion,
       wifiPanel.blurRegion, audioPanel.blurRegion, bluetoothPanel.blurRegion].filter(Boolean)
   }
-  // Keep compositor resizes out of the card animation; only the input area shrinks.
-  implicitWidth: Math.ceil(Math.max(Theme.sidebarOuterMargin + Theme.sidebarCardExpandedWidth + Theme.sidebarFadeWidth,
+  // Ordinary collapse keeps a stable surface for the card animation. Zen
+  // also resizes the surface, sending a layer geometry/configure update when
+  // releasing the exclusive zone instead of changing only reservation state.
+  implicitWidth: Zen.active ? 36 : Math.ceil(Math.max(Theme.sidebarOuterMargin + Theme.sidebarCardExpandedWidth + Theme.sidebarFadeWidth,
       wifiPanel.presented ? panelX + wifiPanel.width + 67 : 0,
       audioPanel.presented ? panelX + audioPanel.width + 67 : 0,
       bluetoothPanel.presented ? panelX + bluetoothPanel.width + 67 : 0))
