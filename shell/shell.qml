@@ -8,6 +8,7 @@ import "authentication" as Authentication
 import "battery" as Battery
 import "settings" as Settings
 import "settings/appearance" as Appearance
+import "settings/night" as Night
 import "settings/system" as System
 import "notifications" as Notifications
 import "updates" as Updates
@@ -22,6 +23,9 @@ ShellRoot {
   // Register the tray host even before its settings UI is opened.
   readonly property var trayItems: SystemTray.items
   readonly property string updateStatus: Updates.State.status
+
+  // Keep night display scheduling alive while settings are closed.
+  readonly property bool nightDisplayReady: Night.State.ready
 
   Shortcuts {}
   // Load the optional Polkit module without making it a shell dependency.

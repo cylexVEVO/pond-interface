@@ -5,6 +5,7 @@ import "." as Settings
 import ".." as Shell
 import "../authentication" as Authentication
 import "appearance" as Appearance
+import "night" as Night
 import "display" as Display
 import "information" as Information
 import "manual" as Manual
@@ -298,7 +299,7 @@ PanelWindow {
     anchors.centerIn: parent
     active: root.presented && (root.modalOpen || opacity > 0)
     sourceComponent: ({
-      wallpaper: wallpaperPage, information: informationPage, manual: manualPage, display: displayPage, arrange: arrangePage,
+      night: nightPage, wallpaper: wallpaperPage, information: informationPage, manual: manualPage, display: displayPage, arrange: arrangePage,
       system: systemPage, mouse: mousePage, lock: lockPage, keyboard: keyboardPage,
       shortcuts: shortcutsPage, shortcutEditor: shortcutEditorPage, timezone: timezonePage, fingerprints: fingerprintsPage
     })[root.displayedPage] || appearancePage
@@ -359,6 +360,13 @@ PanelWindow {
     id: arrangePage
     Display.Arrange {
       availableHeight: root.height - 80
+      scale: Math.min(1, (root.width - 60) / implicitWidth)
+    }
+  }
+  Component {
+    id: nightPage
+    Night.Panel {
+      availableHeight: Math.max(200, root.height - 70)
       scale: Math.min(1, (root.width - 60) / implicitWidth)
     }
   }

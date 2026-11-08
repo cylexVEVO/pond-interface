@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../night" as Night
 import "." as Display
 import ".." as Settings
 import "../appearance" as Appearance
@@ -172,6 +173,11 @@ Settings.Modal {
         Keys.onLeftPressed: Appearance.State.setBrightness(value - 0.05)
         Keys.onRightPressed: Appearance.State.setBrightness(value + 0.05)
       }
+    }
+    Settings.Field {
+      width: parent.width; title: "Night display"; value: Night.State.summary
+      navigation: true
+      onClicked: Settings.State.openPage("night")
     }
     Text {
       width: parent.width; visible: !!Appearance.State.error
