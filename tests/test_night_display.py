@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import contextlib
 import io
 
@@ -57,6 +57,54 @@ class NightDisplay(unittest.TestCase):
                       dict(schedule='unknown'), dict(unknown=True)]:
             with self.subTest(patch=patch), self.assertRaises((ValueError, TypeError)):
                 self.settings(**patch)
+
+    def test_equivalent_active_schedules_keep_gamma_owner(self):
+        with tempfile.TemporaryDirectory() as temp:
+            service = night.Service(Path(temp) / 'night.json')
+            service.settings = self.settings(enabled=True)
+            service.applied_args = night.command(service.settings)
+            child = service.child = Mock()
+            child.poll.return_value = None
+            with patch.object(night, 'datetime') as clock, patch.object(night.subprocess, 'Popen') as launch, contextlib.redirect_stdout(io.StringIO()):
+                clock.now.return_value.astimezone.return_value = datetime(2026, 11, 8, 22)
+                for change in [dict(schedule='manual'), dict(schedule='custom'),
+                               dict(schedule='custom'), dict(start='21:00'),
+                               dict(schedule='manual')]:
+                    service.update(change)
+                    self.assertIs(service.child, child)
+                    child.terminate.assert_not_called()
+                    launch.assert_not_called()
+                    self.assertEqual(json.loads(service.path.read_text()), service.settings)
+
+    def test_solar_reselection_keeps_gamma_owner(self):
+        with tempfile.TemporaryDirectory() as temp:
+            service = night.Service(Path(temp) / 'night.json')
+            service.settings = self.settings(enabled=True, schedule='solar', latitude='45', longitude='-73')
+            service.applied_args = night.command(service.settings)
+            child = service.child = Mock()
+            child.poll.return_value = None
+            with patch.object(night.subprocess, 'Popen') as launch, contextlib.redirect_stdout(io.StringIO()):
+                service.update(dict(schedule='solar'))
+                child.terminate.assert_not_called()
+                launch.assert_not_called()
+
+    def test_changed_output_and_dead_backend_are_applied(self):
+        with tempfile.TemporaryDirectory() as temp:
+            service = night.Service(Path(temp) / 'night.json')
+            service.settings = self.settings(enabled=True)
+            service.applied_args = night.command(service.settings)
+            child = service.child = Mock()
+            child.poll.return_value = None
+            with patch.object(night.subprocess, 'Popen') as launch, patch.object(night.shutil, 'which', return_value='/usr/bin/wlsunset'), patch.object(night.os, 'set_blocking'), contextlib.redirect_stdout(io.StringIO()):
+                service.update(dict(intensity=0.8))
+                child.terminate.assert_called_once()
+                self.assertEqual(launch.call_count, 1)
+                service.child.poll.return_value = 1
+                service.update(dict(intensity=0.8))
+                self.assertEqual(launch.call_count, 2)
+                service.update(dict(enabled=False))
+                self.assertIsNone(service.child)
+                self.assertEqual(launch.call_count, 2)
 
     def test_missing_backend_preserves_settings_and_reports_error(self):
         with tempfile.TemporaryDirectory() as temp:

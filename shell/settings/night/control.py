@@ -95,9 +95,16 @@ class Service:
             self.child = None
 
     def apply(self):
-        self.stop()
         try:
             args = command(self.settings)
+            # Releasing gamma control restores neutral colors, even if the next
+            # process immediately applies the same warmth. Keep a live backend
+            # when only the scheduling preferences changed, or a row was reselected.
+            if args == self.applied_args and (args is None or
+                    (self.child is not None and self.child.poll() is None)):
+                self.report()
+                return
+            self.stop()
             self.applied_args = args
             if args:
                 if not shutil.which('wlsunset'):
@@ -106,6 +113,7 @@ class Service:
                                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
                 os.set_blocking(self.child.stderr.fileno(), False)
         except (ValueError, OSError) as exc:
+            self.stop()
             self.error = str(exc)
         self.report()
 
