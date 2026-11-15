@@ -46,7 +46,6 @@ ShellRoot {
   Variants {
     readonly property var commands: ({
       lock: ["python3", Quickshell.shellDir + "/settings/session.py", "lock"],
-      display: ["niri", "msg", "action", "power-off-monitors"],
       sleep: ["python3", Quickshell.shellDir + "/settings/session.py", "suspend"]
     })
     model: Object.keys(commands).filter(key => !Zen.holdingIdle && System.Idle.current[key] > 0)
@@ -57,6 +56,8 @@ ShellRoot {
       onIsIdleChanged: if (isIdle) Quickshell.execDetached(modelData.command)
     }
   }
+
+  IdleFade {}
 
   Process {
     id: sleepLock
